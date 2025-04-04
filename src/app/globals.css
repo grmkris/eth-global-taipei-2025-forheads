@@ -137,22 +137,7 @@
   body {
     @apply bg-background text-foreground;
     font-weight: var(--font-weight-bold);
-    position: relative;
-    z-index: 0;
   }
-
-  body::after {
-    content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(ellipse at center, rgba(0,0,0,0) 50%, rgba(0,0,0,0.3) 100%);
-    pointer-events: none;
-    z-index: 50;
-  }
-
   .border {
     border-width: 2px !important;
   }
