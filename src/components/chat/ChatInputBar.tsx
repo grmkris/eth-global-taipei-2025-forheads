@@ -1,5 +1,5 @@
 import * as React from "react";
-import { SendHorizonalIcon } from "lucide-react"; // Using Send Horizontal icon
+import { ArrowRightIcon } from "lucide-react"; // Changed from SendHorizonalIcon
 
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
@@ -56,7 +56,7 @@ function ChatInputBar({
     <form
       onSubmit={handleSend}
       className={cn(
-        "flex w-full items-end gap-2 border-t bg-background p-4", // Use background, add padding and border
+        "flex w-full items-end gap-2 bg-muted p-4", // Removed border-t, changed bg-background to bg-muted
         className,
       )}
       {...props}
@@ -68,7 +68,7 @@ function ChatInputBar({
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
         rows={1} // Start with 1 row, auto-expands due to field-sizing-content
-        className="min-h-10 max-h-48 flex-1 resize-none" // Allow expansion up to a certain height
+        className="min-h-10 max-h-48 flex-1 resize-none rounded-md" // Added rounded-md
         {...inputProps}
       />
       <TooltipProvider>
@@ -77,11 +77,13 @@ function ChatInputBar({
             <Button
               type="submit"
               size="icon"
+              variant="ghost" // Added variant="ghost"
               disabled={!message.trim()} // Disable if no message
               aria-label="Send message"
+              className="rounded-md" // Added rounded-md
               {...buttonProps}
             >
-              <SendHorizonalIcon className="size-5" />
+              <ArrowRightIcon className="size-5" /> {/* Changed icon */}
             </Button>
           </TooltipTrigger>
           <TooltipContent>
