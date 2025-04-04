@@ -1,12 +1,7 @@
 import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import {
-  ConversationId, MessageId, UserId
-} from "../typeid";
-import {
-  conversationsTable,
-  messagesTable,
-} from "./chat.db"; // Assuming tables are exported from chat.db.ts
+import { ConversationId, MessageId, UserId } from "../typeid";
+import { conversationsTable, messagesTable } from "./chat.db"; // Assuming tables are exported from chat.db.ts
 import type { Message } from "ai";
 
 /**
@@ -16,14 +11,12 @@ JSON values can be serialized and deserialized by the JSON.stringify and JSON.pa
  */
 export const MessageSchema = z.custom<Omit<Message, "data" | "annotations">>();
 
-
 // Schemas for Conversations
 export const SelectConversationSchema = createSelectSchema(conversationsTable, {
   id: ConversationId,
   createdAt: z.coerce.date(),
   createdBy: UserId,
 });
-
 
 export const InsertConversationSchema = z.object({
   title: z.string().min(1).max(255),

@@ -97,7 +97,6 @@ export const inferTypeId = <T extends keyof IdTypesMapPrefixToName>(
     TypeID.fromString(input).getType() as T
   ] as unknown as T;
 
-
 export const UserId = typeIdValidator("user");
 export type UserId = z.infer<typeof UserId>;
 

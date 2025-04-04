@@ -3,7 +3,6 @@ import { z } from "zod";
 export const clientEnvSchema = z.object({
   NEXT_PUBLIC_API_URL: z.string().url(),
   NEXT_PUBLIC_SITE_URL: z.string().url(),
-  
 });
 
 // Build an object explicitly with the expected client variables

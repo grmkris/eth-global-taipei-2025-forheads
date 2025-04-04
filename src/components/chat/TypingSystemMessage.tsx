@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import type React from "react"; // Import only the type
+import { useState, useEffect } from "react";
 
 interface TypingSystemMessageProps {
   message: string;
@@ -25,7 +26,8 @@ export const TypingSystemMessage: React.FC<TypingSystemMessageProps> = ({
 
       // Cleanup function to clear timeout if component unmounts or rerenders
       return () => clearTimeout(timeoutId);
-    } else if (currentIndex === message.length && onComplete) {
+    }
+    if (currentIndex === message.length && onComplete) {
       // Call onComplete callback once typing is finished
       onComplete();
     }
