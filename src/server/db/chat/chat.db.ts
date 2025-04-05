@@ -33,7 +33,7 @@ export const usersTable = pgTable("users", {
     .primaryKey()
     .$defaultFn(() => typeIdGenerator("user"))
     .$type<UserId>(),
-  walletAddress: varchar("wallet_address").notNull(),
+  walletAddress: varchar("wallet_address").notNull().unique(),
   nftContractAddress: varchar("nft_contract_address"),
   profileNftStatus: text("profile_nft_status", { enum: NFT_MINT_STATUSES })
     .default(NftMintStatus.enum.NOT_MINTED)
