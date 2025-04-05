@@ -3,6 +3,7 @@
 import type React from "react";
 import { useChat, type Message } from "@ai-sdk/react";
 import { cn } from "@/lib/utils";
+import { useRef, useEffect } from "react";
 
 import { ChatContainer } from "@/components/chat/ChatContainer";
 import { AIMessage } from "@/components/chat/AIMessage";
@@ -56,6 +57,19 @@ export function ChatInterface() {
   const isStreaming = chat.status === "streaming";
   const isError = chat.status === "error";
 
+  // Reference to the bottom div for auto-scrolling
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll when messages or loading states change
+  useEffect(() => {
+    // Scroll to bottom with a small delay to ensure rendering is complete
+    const timer = setTimeout(() => {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [chat.messages, isLoading, isStreaming, isError]);
+
   const handleSendMessage = async (content: string) => {
     console.log("handleSendMessage", content);
     if (!content.trim()) return;
@@ -78,7 +92,6 @@ export function ChatInterface() {
         ) : (
           <div className="flex flex-col gap-4">
             {" "}
-            {/* Use flex-col and gap like original */}
             {chat.messages.map((message) => {
               switch (message.role) {
                 case "user":
@@ -137,6 +150,8 @@ export function ChatInterface() {
                 </Button>
               </div>
             )}
+            {/* This div is used for auto-scrolling */}
+            <div ref={bottomRef} />
           </div>
         )}
       </ChatContainer>
