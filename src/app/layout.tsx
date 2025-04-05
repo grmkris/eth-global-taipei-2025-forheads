@@ -3,7 +3,7 @@ import { Nunito } from "next/font/google";
 import { PT_Sans } from "next/font/google";
 import "./globals.css";
 import { headers } from "next/headers";
-import {ContextProvider} from "@/WalletContext";
+import { ContextProvider } from "@/WalletContext";
 
 const nunito = Nunito({
   variable: "--font-nunito",
@@ -26,8 +26,8 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const headersList = await headers()
-  const cookies = headersList.get('cookie')
+  const headersList = await headers();
+  const cookies = headersList.get("cookie");
   return (
     <html lang="en">
       <body

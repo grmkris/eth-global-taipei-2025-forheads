@@ -28,6 +28,7 @@ export const conversationsTable = pgTable("conversations", {
     .references(() => usersTable.id)
     .$type<UserId>(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 // Messages table

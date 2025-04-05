@@ -7,14 +7,30 @@ import { ChatContainer } from "@/components/chat/ChatContainer";
 import { AIMessage } from "@/components/chat/AIMessage";
 import { UserMessage } from "@/components/chat/UserMessage";
 import { ChatInputBar } from "@/components/chat/ChatInputBar";
-import { typeIdGenerator, type ConversationId } from "@/server/db/typeid";
+import { typeIdGenerator } from "@/server/db/typeid";
 import { useAccount } from "wagmi";
+import { useConversation } from "@/lib/chatHooks";
+import ConnectButton from "@/components/web3/connect-button";
 
-export function ChatInterface(props: { messages: Message[], conversationId: ConversationId }) {
+export function ChatInterface() {
   const { address } = useAccount();
+  const conversation = useConversation({
+    address: address,
+  });
+  const initalMessages: Message[] = [];
+  for (const m of conversation.data ?? []) {
+    // @ts-expect-error blablabla
+    initalMessages.push({
+      ...m.message,
+      createdAt: m.message.createdAt
+        ? new Date(m.message.createdAt)
+        : undefined,
+    });
+  }
+
   const chat = useChat({
     api: "/api/conversation",
-    id: props.conversationId,
+    id: conversation.data?.[0].conversationId,
     onToolCall: (toolCall) => {
       console.log("useChat onToolCall", toolCall);
     },
@@ -23,7 +39,7 @@ export function ChatInterface(props: { messages: Message[], conversationId: Conv
     },
     generateId: () => typeIdGenerator("message"),
     credentials: "include",
-    initialMessages: props.messages,
+    initialMessages: initalMessages,
     onResponse: (response) => {
       console.log("useChat onResponse", response);
     },
@@ -87,6 +103,7 @@ export function ChatInterface(props: { messages: Message[], conversationId: Conv
       </ChatContainer>
       {/* Use your ChatInputBar component */}
       <ChatInputBar onSendMessage={handleSendMessage} />
+      <ConnectButton />
     </div>
   );
 }
