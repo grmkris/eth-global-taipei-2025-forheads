@@ -34,6 +34,7 @@ export const idTypesMapNameToPrefix = {
 
   message: "msg",
   conversation: "conv",
+  levelProgression: "lvl",
 } as const;
 
 type IdTypesMapNameToPrefix = typeof idTypesMapNameToPrefix;
@@ -104,3 +105,6 @@ export const ConversationId = typeIdValidator("conversation");
 export type ConversationId = z.infer<typeof ConversationId>;
 export const MessageId = typeIdValidator("message");
 export type MessageId = z.infer<typeof MessageId>;
+
+export const LevelProgressionId = typeIdValidator("levelProgression");
+export type LevelProgressionId = z.infer<typeof LevelProgressionId>;

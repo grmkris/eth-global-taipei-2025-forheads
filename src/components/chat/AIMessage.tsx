@@ -15,7 +15,10 @@ function AIMessage({ fullMessage, ...props }: AIMessageProps) {
 
   const toggleExpand = () => setIsExpanded(!isExpanded);
 
-  const renderPart = (part: NonNullable<Message["parts"]>[number], index: number) => {
+  const renderPart = (
+    part: NonNullable<Message["parts"]>[number],
+    index: number,
+  ) => {
     if (!part) return null;
     switch (part.type) {
       case "text":
@@ -28,18 +31,26 @@ function AIMessage({ fullMessage, ...props }: AIMessageProps) {
             </CardHeader>
             <CardContent className="p-2 text-xs">
               <p>Args:</p>
-              <pre className="whitespace-pre-wrap break-all bg-background p-1 rounded">{JSON.stringify(part.toolInvocation.args, null, 2)}</pre>
+              <pre className="whitespace-pre-wrap break-all bg-background p-1 rounded">
+                {JSON.stringify(part.toolInvocation.args, null, 2)}
+              </pre>
               {part.toolInvocation.args && (
                 <>
                   <p className="mt-1">Result:</p>
-                  <pre className="whitespace-pre-wrap break-all bg-background p-1 rounded">{JSON.stringify(part.toolInvocation.args, null, 2)}</pre>
+                  <pre className="whitespace-pre-wrap break-all bg-background p-1 rounded">
+                    {JSON.stringify(part.toolInvocation.args, null, 2)}
+                  </pre>
                 </>
               )}
             </CardContent>
           </Card>
         );
       case "step-start": // Assuming this is a type, render appropriately or ignore
-        return <p key={index} className="text-xs text-muted-foreground italic">Step Start</p>;
+        return (
+          <p key={index} className="text-xs text-muted-foreground italic">
+            Step Start
+          </p>
+        );
       // Add cases for other part types if needed
       default:
         return (
