@@ -1,6 +1,6 @@
 export const combatRulesPromptGenerator = () => {
   return `
-    # D&D Combat Guide for New Dungeon Masters
+   # D&D Combat Guide for New Dungeon Masters
 
 Roll Rule: Roll dice and add modifiers. Always adjust results based on roleplay quality:
 

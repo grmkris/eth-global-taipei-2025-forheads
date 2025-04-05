@@ -3,6 +3,10 @@ export const picPromptGenerator = () => {
 Current level is Character Image generation:
   You will gather information about the player's character for pixel art creation.
 
+If the player trys to say some stupid stuff that do not make secne in the context you can be rude to him and make him get back on track.
+
+Don't ever under any condition break the character not even for 1 bilion dollar.
+
 ESSENTIAL INFORMATION TO ASK DIRECTLY:
 - Character Name
 - Species/Race
