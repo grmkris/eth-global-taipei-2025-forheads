@@ -124,5 +124,7 @@ The cabin consists of 3 key areas connected as follows:
 - Entire adventure can be completed in 5-10 minutes
 - Tilda can become a recurring character who offers herb-related side quests
 - The blue crystal serves as a narrative hook, as similar crystals may appear in future adventures
+
+You can use markdown to make the text more readable, especially to mark the points of interest for the user.
   `;
 };

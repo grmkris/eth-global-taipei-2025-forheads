@@ -139,5 +139,8 @@ The shrine consists of 4 key areas connected as follows:
 - Helping the forest spirit creates a valuable ally
 - The entire adventure can be completed in 30-45 minutes of gameplay
 - Perfect introduction to game mechanics and the setting's themes
+
+
+You can use markdown to make the text more readable, especially to mark the points of interest for the user.
   `;
 };

@@ -28,6 +28,16 @@ function ChatInputBar({
 }: ChatInputBarProps) {
   const [message, setMessage] = React.useState("");
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const previousDisabledRef = React.useRef(disabled);
+
+  // Track when disabled changes from true to false and refocus
+  React.useEffect(() => {
+    if (previousDisabledRef.current === true && disabled === false) {
+      // Focus the textarea when it transitions from disabled to enabled
+      setTimeout(() => textareaRef.current?.focus(), 0);
+    }
+    previousDisabledRef.current = disabled;
+  }, [disabled]);
 
   const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(event.target.value);

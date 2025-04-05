@@ -1,4 +1,4 @@
-import * as React from "react";
+import type * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { useState, useRef, useEffect } from "react";
 import { VolumeIcon, Loader2Icon } from "lucide-react";
@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { clientEnv } from "@/lib/clientEnv";
 
 const messageVariants = cva("flex items-start gap-3", {
   variants: {
@@ -75,7 +76,7 @@ function MessageBubble({
       const text = messageRef.current.textContent || '';
       setExtractedText(text.trim());
     }
-  }, [message]);
+  }, []);
 
   // Clean text for TTS to prevent reading out punctuation marks
   const cleanTextForTTS = (text: string): string => {
@@ -174,7 +175,7 @@ function MessageBubble({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'xi-api-key': process.env.NEXT_PUBLIC_ELEVEN_LABS_API_KEY || '', // You'll need to set this in your .env file
+          'xi-api-key': clientEnv.NEXT_PUBLIC_ELEVEN_LABS_API_KEY,
         },
         body: JSON.stringify({
           text: messageText,

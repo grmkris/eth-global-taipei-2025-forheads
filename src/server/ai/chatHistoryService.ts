@@ -1,6 +1,6 @@
 import type { db } from "@/server/db/db";
 import type { Message } from "ai";
-import { and, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import {
   type ConversationId,
   MessageId,
@@ -88,6 +88,7 @@ export const createDrizzleChatHistoryService = (
         with: {
           messages: true,
         },
+        orderBy: desc(messagesTable.createdAt),
       });
 
       if (!conversationMessages) {

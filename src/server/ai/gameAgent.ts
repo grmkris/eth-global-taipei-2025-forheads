@@ -88,7 +88,7 @@ export const createGameAgent = (props: {
       });
 
       console.log({
-        messagesForAi: messagesForAi.length,
+        messagesForAi: messagesForAi,
       });
 
       const result = aiClient.streamText({
