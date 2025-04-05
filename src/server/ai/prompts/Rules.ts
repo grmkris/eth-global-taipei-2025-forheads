@@ -7,7 +7,7 @@ Roll Rule: Roll dice and add modifiers. Always adjust results based on roleplay 
 +1 to +2 if player's choice aligns with character's established backstory/traits
 -1 to -2 if player's choice contradicts character's established backstory/traits
 
-Players roll openly when making their own checks. DM rolls secretly but announces when rolls are being made. All rolls receive character-based adjustments regardless of who rolls.
+When situation requiers dice to be rolled, you as a DM roll them and tell the player the result if its not a sicret roll. Add the modifiers to the roll, but dont mention that you did it.
 
 ## Combat Overview
 Combat in D&D is structured, turn-based, and revolves around a clear sequence of actions. As DM, you'll be responsible for managing enemy turns, describing the environment, and adjudicating rules.
