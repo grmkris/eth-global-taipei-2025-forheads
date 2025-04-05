@@ -56,15 +56,116 @@ export const Level = z.enum(LEVELS);
 export type Level = z.infer<typeof Level>;
 export const Level1PictureSchema = z.object({
   type: z.literal(Level.enum["level1-picture"]),
-  prompt: z.record(z.string(), z.record(z.string(), z.string())),
+  prompt: z.string(),
   image: z.string(), // base64 encoded image
 });
 export type Level1PictureSchema = z.infer<typeof Level1PictureSchema>;
 
+// Define the Character schema
+export const CharacterSchema = z.object({
+  character: z.object({
+    name: z.string(),
+    race: z.string(),
+    class: z.string(),
+    level: z.number().int().min(0),
+    background: z.string(),
+    alignment: z.string(),
+    experience: z.number().int().min(0),
+  }),
+
+  attributes: z.object({
+    strength: z.number().int().min(0),
+    dexterity: z.number().int().min(0),
+    constitution: z.number().int().min(0),
+    intelligence: z.number().int().min(0),
+    wisdom: z.number().int().min(0),
+    charisma: z.number().int().min(0),
+  }),
+
+  status: z.object({
+    max_hp: z.number().int().nullable(),
+    current_hp: z.number().int().nullable(),
+    armor_class: z.number().int().nullable(),
+    initiative: z.number().int().nullable(),
+    speed: z.number().int().nullable(),
+    passive_perception: z.number().int().nullable(),
+  }),
+
+  proficiencies: z.object({
+    saving_throws: z.array(z.string()),
+    skills: z.array(z.string()),
+    languages: z.array(z.string()),
+    weapons: z.array(z.string()),
+    armor: z.array(z.string()),
+    tools: z.array(z.string()),
+  }),
+
+  inventory: z.object({
+    equipment: z.array(
+      z.object({
+        name: z.string(),
+        equipped: z.boolean(),
+        description: z.string(),
+      })
+    ),
+    consumables: z.array(
+      z.object({
+        name: z.string(),
+        quantity: z.number().int().min(0),
+        description: z.string(),
+      })
+    ),
+    valuables: z.array(
+      z.object({
+        name: z.string(),
+        quantity: z.number().int().min(0),
+      })
+    ),
+    other_items: z.array(
+      z.object({
+        name: z.string(),
+        description: z.string(),
+      })
+    ),
+    carry_capacity: z.object({
+      current_weight: z.number().min(0),
+      maximum_weight: z.number().min(0),
+    }),
+  }),
+
+  relationships: z.object({
+    allies: z.array(
+      z.object({
+        name: z.string(),
+        location: z.string(),
+        disposition: z.number().int(),
+        notes: z.string(),
+      })
+    ),
+    enemies: z.array(
+      z.object({
+        name: z.string(),
+        description: z.string(),
+        status: z.string(),
+      })
+    ),
+    neutral: z.array(
+      z.object({
+        name: z.string(),
+        disposition: z.number().int(),
+        notes: z.string(),
+      })
+    ),
+  }),
+});
+
+// Export the schema
+export type CharacterSchema = z.infer<typeof CharacterSchema>;
+
 export const Level1SheetSchema = z.object({
   type: z.literal(Level.enum["level1-sheet"]),
-  prompt: z.record(z.string(), z.record(z.string(), z.string())),
-  characterSheet: z.record(z.string(), z.record(z.string(), z.string())),
+  prompt: z.string(),
+  characterSheet: CharacterSchema,
 });
 export type Level1SheetSchema = z.infer<typeof Level1SheetSchema>;
 

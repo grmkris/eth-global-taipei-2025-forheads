@@ -15,12 +15,17 @@ import { stream } from "hono/streaming";
 import { createGameAgent } from "./ai/gameAgent";
 import { createDrizzleChatHistoryService } from "./ai/chatHistoryService";
 import { createAiClient } from "./ai/aiClient";
+import { LiteralClient } from "@literalai/client";
 
 const db = createDb({
   logger: {
     logQuery: (query) => console.log(query),
   },
   dbUrl: serverEnv.DATABASE_URL,
+});
+
+const literalaiClient = new LiteralClient({
+    apiKey: serverEnv.LITERAL_API_KEY
 });
 
 // Create the Hono app
@@ -213,7 +218,7 @@ export const app = new Hono()
         });
 
         // Initialize Game Agent (can be done once outside if stateless)
-        const gameAgent = createGameAgent({ deps: { aiClient } });
+        const gameAgent = createGameAgent({ deps: { aiClient, db }, userId });
 
         // Create chat history service instance for this request
         const chatHistoryService = createDrizzleChatHistoryService({
@@ -225,19 +230,55 @@ export const app = new Hono()
         // Start streaming response
         const dataStream = createDataStream({
           execute: async (dataStreamWriter) => {
-            // Process with agent
-            const dataAgentStream = await gameAgent.queryStream({
-              dataStreamWriter,
-              message: userMessage,
-              chatHistoryService,
-            });
-            dataAgentStream.mergeIntoDataStream(dataStreamWriter);
+            await literalaiClient
+              .thread({ name: `Conversation ${conversation.id}`, id: userId }) // Use userId as thread ID
+              .wrap(async () => {
+                // Log the user message as a step
+                await literalaiClient
+                  .step({
+                    type: "user_message",
+                    name: "User",
+                    input: { content: userMessage.content }, // Log input here
+                  })
+                  .send();
+
+                 // Create a step for the agent processing
+                const agentStep = literalaiClient.step({
+                    type: 'llm', // Or 'agent' if more appropriate
+                    name: 'GameAgent Stream',
+                    input: { content: userMessage.content }, // Agent input is user message
+                });
+
+                try {
+                    // Process with agent within the Literal AI step context
+                    const dataAgentStream = await gameAgent.queryStream({
+                    dataStreamWriter,
+                    message: userMessage,
+                    chatHistoryService,
+                    });
+                    dataAgentStream.mergeIntoDataStream(dataStreamWriter);
+
+                    // Mark the agent step as complete (output might be harder to capture directly with streams)
+                    // You might need a way to capture the final streamed output if needed for Literal AI logging.
+                    // For now, we just mark it sent. We could potentially log the stream status or final message ID.
+                    await agentStep.send();
+
+                } catch (agentError) {
+                   console.error("Error during game agent execution:", agentError);
+                   // Log error to Literal AI step
+                   await agentStep.send();
+                   // Re-throw error to be caught by the outer handler if necessary
+                   throw agentError;
+                }
+              });
           },
           onError: (error) => {
             console.error("Streaming error", error);
+            // Optionally log error to Literal AI here as well, though the step error handling might cover it.
             return error instanceof Error ? error.message : String(error);
           },
         });
+
 
         // Mark the response as a v1 data stream
         c.header("X-Vercel-AI-Data-Stream", "v1");
@@ -246,6 +287,7 @@ export const app = new Hono()
         return stream(c, (stream) => stream.pipe(dataStream));
       } catch (error) {
         console.error("Error processing message:", error);
+        // Consider logging the overall error to Literal AI if not caught within the thread wrap
         return c.json({ error: "Failed to process message" }, 500);
       }
     },

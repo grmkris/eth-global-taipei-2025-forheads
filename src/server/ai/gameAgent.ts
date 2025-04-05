@@ -17,6 +17,7 @@ import {
 } from "../db/chat/chat.db";
 import type { db } from "../db/db";
 import { generateCharacterPic } from "./generateCharacterPic";
+import { generateCharacterSheet } from "./generateCharacterPic";
 import { sheetMakerPromptGenerator } from "./prompts/02-SheetMaker";
 import { eq } from "drizzle-orm";
 const systemPrompt = async (props: { db: db; userId: UserId }) => {
@@ -52,11 +53,12 @@ export const createGameAgent = (props: {
     description: "Call this tool to finish the level",
     parameters: z.object({
       level: z.enum(["pic", "sheet"]),
-      data: z.record(z.string(), z.record(z.string(), z.string())),
+      data: z.string(),
     }),
     execute: async (args) => {
-      switch (args.level) {
-        case "pic": {
+      try {
+        switch (args.level) {
+          case "pic": {
           console.log({
             msg: "Finish level tool, pic should be generated now",
             args,
@@ -77,6 +79,9 @@ export const createGameAgent = (props: {
               image: image,
             } satisfies Level1PictureSchema,
           });
+          console.log({
+            msg: "Picture generated and user moved to next level",
+          });
           return {
             msg: "Picture generated and user moved to next level",
           };
@@ -86,6 +91,11 @@ export const createGameAgent = (props: {
             msg: "Finish level tool, sheet should be generated now",
             args,
           });
+
+          const characterSheet = await generateCharacterSheet({
+            aiClient,
+            prompt: args.data,
+          });
           // save the sheet to the database
           await db.insert(levelProgressionTable).values({
             level: "level1-sheet",
@@ -93,13 +103,23 @@ export const createGameAgent = (props: {
             data: {
               type: "level1-sheet",
               prompt: args.data,
-              characterSheet: args.data,
+              characterSheet: characterSheet,
             } satisfies Level1SheetSchema,
           });
           return {
             msg: "Sheet generated and user moved to next level",
           };
         }
+      }
+    } catch (error) {
+      console.error({
+        msg: "Error in finish level tool",
+        error,
+      });
+      return {
+        msg: "Error in finish level tool, ask the user to try again",
+          error: error instanceof Error ? error.message : String(error),
+        };
       }
     },
   });
@@ -125,11 +145,6 @@ export const createGameAgent = (props: {
       console.log({
         msg: "Messages sent to AI",
         messages: messagesForAi,
-      });
-
-      console.debug({
-        msg: "System prompt",
-        systemPrompt,
       });
 
       const result = aiClient.streamText({
