@@ -7,6 +7,7 @@ export default async function Home() {
   const data = await getConversation();
   const initalMessages: Message[] = [];
   for (const m of data) {
+    // @ts-expect-error - TODO: fix this
     initalMessages.push({
       ...m.message,
       createdAt: m.message.createdAt
