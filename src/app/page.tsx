@@ -3,6 +3,8 @@ import ConnectButton from "@/components/web3/connect-button";
 import { getConversation } from "@/lib/chatLib";
 import type { Message } from "ai";
 
+export const runtime = "edge";
+
 export default async function Home() {
   const data = await getConversation();
   const initalMessages: Message[] = [];
