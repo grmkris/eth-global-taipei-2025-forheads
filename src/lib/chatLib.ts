@@ -17,9 +17,13 @@ export const getConversation = async (address: string) => {
   return data;
 };
 
-export const getProgression = async (address: string, level: Level) => {
+export const getProgression = async (
+  address: string,
+  level: Level,
+  index?: number,
+) => {
   const progression = await apiClient.progression.$get({
-    query: { address, level },
+    query: { address, level, levelIndex: index?.toString() },
   });
   if (progression.status !== 200) {
     throw new Error("Failed to get progression");

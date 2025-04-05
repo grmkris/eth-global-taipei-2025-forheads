@@ -31,7 +31,7 @@ const typeIdLength = 26;
 export const idTypesMapNameToPrefix = {
   // Forms module prefixes
   user: "usr",
-
+  item: "itm",
   message: "msg",
   conversation: "conv",
   levelProgression: "lvl",
@@ -108,3 +108,5 @@ export type MessageId = z.infer<typeof MessageId>;
 
 export const LevelProgressionId = typeIdValidator("levelProgression");
 export type LevelProgressionId = z.infer<typeof LevelProgressionId>;
+export const ItemId = typeIdValidator("item");
+export type ItemId = z.infer<typeof ItemId>;

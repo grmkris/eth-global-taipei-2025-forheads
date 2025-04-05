@@ -38,12 +38,12 @@ const systemPrompt = async (props: { db: DbType; userId: UserId }) => {
         characterSheet: latestLevel.data.characterSheet,
       });
     }
-    case "level1": {
-      return level1PromptGenerator({
-        characterSheet: latestLevel.data.characterSheet,
-      });
-    }
-    case "level2": {
+    case "level": {
+      if (latestLevel.data.levelIndex === 0) {
+        return level1PromptGenerator({
+          characterSheet: latestLevel.data.characterSheet,
+        });
+      }
       return level2PromptGenerator({
         characterSheet: latestLevel.data.characterSheet,
       });

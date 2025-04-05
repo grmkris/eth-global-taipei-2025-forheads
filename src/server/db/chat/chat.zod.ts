@@ -4,7 +4,7 @@ import { ConversationId, MessageId, UserId } from "../typeid";
 import { conversationsTable, messagesTable } from "./chat.db"; // Assuming tables are exported from chat.db.ts
 import type { Message } from "ai";
 
-export const AGENT_LEVELS = ["pic", "sheet", "level1", "level2"] as const;
+export const AGENT_LEVELS = ["pic", "sheet", "level"] as const;
 export const AgentLevel = z.enum(AGENT_LEVELS);
 export type AgentLevel = z.infer<typeof AgentLevel>;
 

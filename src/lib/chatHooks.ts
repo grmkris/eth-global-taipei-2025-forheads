@@ -15,9 +15,13 @@ export const useConversation = (props: { address?: string }) => {
   });
 };
 
-export const useProgression = (props: { address?: string; level?: Level }) => {
+export const useProgression = (props: {
+  address?: string;
+  level?: Level;
+  index?: number;
+}) => {
   return useQuery({
-    queryKey: ["progression", props.address, props.level],
+    queryKey: ["progression", props.address, props.level, props.index],
     queryFn: () => {
       if (!props.address) {
         throw new Error("Address is required");
@@ -25,9 +29,9 @@ export const useProgression = (props: { address?: string; level?: Level }) => {
       if (!props.level) {
         throw new Error("Level is required");
       }
-      return getProgression(props.address, props.level);
+      return getProgression(props.address, props.level, props.index);
     },
-    enabled: !!props.address && !!props.level,
+    enabled: !!props.address && !!props.level && !!props.index,
   });
 };
 

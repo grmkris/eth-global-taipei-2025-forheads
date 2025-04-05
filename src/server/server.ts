@@ -1,5 +1,5 @@
 import * as schema from "./db/schema";
-import { typeIdGenerator, type UserId } from "./db/typeid";
+import { ItemId, typeIdGenerator, type UserId } from "./db/typeid";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { eq, asc, and, desc } from "drizzle-orm";
@@ -299,24 +299,42 @@ export const app = new Hono()
   // get progression data for a user
   .get(
     "/progression",
-    zValidator("query", z.object({ address: z.string(), level: schema.Level })),
+    zValidator(
+      "query",
+      z.object({
+        address: z.string(),
+        level: schema.Level,
+        // levelIndex is only required when level is "level"
+        levelIndex: z.number().int().min(0).optional(),
+      }),
+    ),
     async (c) => {
       const address = c.req.valid("query").address;
       const level = c.req.valid("query").level;
+      const levelIndex = c.req.valid("query").levelIndex;
       const userId = await getUserIdFromContext(address);
+
+      // For the "level" type, we need to include levelIndex in the query
+      const whereConditions =
+        level === "level" && levelIndex !== undefined
+          ? and(
+              eq(schema.levelProgressionTable.userId, userId),
+              eq(schema.levelProgressionTable.level, level),
+              eq(schema.levelProgressionTable.levelIndex, levelIndex),
+            )
+          : and(
+              eq(schema.levelProgressionTable.userId, userId),
+              eq(schema.levelProgressionTable.level, level),
+            );
 
       // Fetch specific level progression data
       const progressionData = await db.query.levelProgressionTable.findMany({
-        where: and(
-          eq(schema.levelProgressionTable.userId, userId),
-          eq(schema.levelProgressionTable.level, level),
-        ),
-        // Optionally add ordering if multiple entries per level are possible
+        where: whereConditions,
+        // Sort by most recent first
         orderBy: [desc(schema.levelProgressionTable.createdAt)],
       });
 
       // Return the specific progression data found for that level
-      // If you only expect one entry per level, you might use findFirst
       return c.json(progressionData);
     },
   )
@@ -339,9 +357,8 @@ export const app = new Hono()
       let latestImage: string | null = null;
       let latestCharacterSheet: schema.CharacterSchema | null = null;
       let latestSummary: string | null = null;
-      let highestLevel: schema.Level | null = null;
-      // Define level order for potential future use if needed
-      // const levelOrder = schema.LEVELS;
+      let highestLevelIndex = -1;
+      let highestLevelType: schema.Level | null = null;
 
       // Find the latest relevant data by iterating through sorted entries
       for (const entry of levelProgressionEntries) {
@@ -353,50 +370,54 @@ export const app = new Hono()
           }
         }
 
-        // Find latest character sheet from sheet, level1, or level2
+        // Find latest character sheet from any level or level1-sheet
         if (!latestCharacterSheet) {
-          let parsedSheetData = null;
           if (entry.level === "level1-sheet") {
-            parsedSheetData = schema.Level1SheetSchema.safeParse(entry.data);
-          } else if (entry.level === "level1") {
-            parsedSheetData = schema.Level1Schema.safeParse(entry.data);
-          } else if (entry.level === "level2") {
-            parsedSheetData = schema.Level2Schema.safeParse(entry.data);
+            const parsedData = schema.Level1SheetSchema.safeParse(entry.data);
+            if (parsedData.success) {
+              latestCharacterSheet = parsedData.data.characterSheet;
+            }
+          } else if (entry.level === "level") {
+            const parsedData = schema.LevelSchema.safeParse(entry.data);
+            if (parsedData.success && "characterSheet" in parsedData.data) {
+              latestCharacterSheet = parsedData.data.characterSheet;
+            }
           }
+        }
 
+        // Find latest summary from level type
+        if (!latestSummary && entry.level === "level") {
+          const parsedData = schema.LevelSchema.safeParse(entry.data);
+          if (parsedData.success) {
+            latestSummary = parsedData.data.levelSummary;
+          }
+        }
+
+        // Determine the highest level type or index
+        if (entry.level === "level") {
+          const parsedData = schema.LevelSchema.safeParse(entry.data);
           if (
-            parsedSheetData?.success &&
-            "characterSheet" in parsedSheetData.data
+            parsedData.success &&
+            parsedData.data.levelIndex > highestLevelIndex
           ) {
-            latestCharacterSheet = parsedSheetData.data.characterSheet;
+            highestLevelIndex = parsedData.data.levelIndex;
           }
-        }
-
-        // Find latest summary from level1 or level2
-        if (!latestSummary) {
-          if (entry.level === "level1") {
-            const parsedData = schema.Level1Schema.safeParse(entry.data);
-            if (parsedData.success)
-              latestSummary = parsedData.data.level1Summary;
-          } else if (entry.level === "level2") {
-            const parsedData = schema.Level2Schema.safeParse(entry.data);
-            if (parsedData.success)
-              latestSummary = parsedData.data.level2Summary;
+          if (!highestLevelType || highestLevelType === "level") {
+            highestLevelType = entry.level;
           }
-        }
-
-        // Determine the highest level based on the first entry encountered (due to sorting)
-        if (highestLevel === null && entry.level) {
-          highestLevel = entry.level;
+        } else if (
+          !highestLevelType ||
+          (highestLevelType !== "level" && entry.level)
+        ) {
+          highestLevelType = entry.level;
         }
 
         // Optimization: if we found the latest of each relevant piece, stop iterating
-        // Note: We check highestLevel last as it's determined by the very first entry
         if (
           latestImage &&
           latestCharacterSheet &&
           latestSummary &&
-          highestLevel
+          highestLevelType
         ) {
           break;
         }
@@ -540,18 +561,112 @@ export const app = new Hono()
       }
 
       // Add highest completed level/stage as a trait
-      if (highestLevel) {
+      if (highestLevelType) {
         // Map internal level name to a more user-friendly name
         const levelNameMap: Partial<Record<schema.Level, string>> = {
-          "level1-picture": "Stage 1: Picture",
-          "level1-sheet": "Stage 2: Sheet",
-          level1: "Stage 3: Level 1 Summary",
-          level2: "Stage 4: Level 2 Summary",
+          "level1-picture": "Stage 1: Character Picture",
+          "level1-sheet": "Stage 2: Character Sheet",
         };
+
+        // For "level" type, use the levelIndex
+        let levelDisplayName =
+          levelNameMap[highestLevelType] || highestLevelType;
+        if (highestLevelType === "level" && highestLevelIndex >= 0) {
+          levelDisplayName = `Stage ${highestLevelIndex + 3}: Adventure ${
+            highestLevelIndex + 1
+          }`;
+        }
+
         nftMetadata.attributes.push({
           trait_type: "Highest Stage Reached",
-          value: levelNameMap[highestLevel] || highestLevel,
+          value: levelDisplayName,
         });
+      }
+
+      return c.json(nftMetadata);
+    },
+  )
+
+  // get item NFT metadata
+  .get(
+    "/item-metadata",
+    zValidator(
+      "query",
+      z.object({
+        address: z.string(),
+        itemId: ItemId,
+      }),
+    ),
+    async (c) => {
+      const address = c.req.valid("query").address;
+      const itemId = c.req.valid("query").itemId;
+      const userId = await getUserIdFromContext(address);
+
+      // Set default metadata
+      const nftMetadata: {
+        name: string;
+        description: string;
+        image?: string;
+        external_url?: string;
+        attributes: {
+          trait_type: string;
+          value: string | number;
+          display_type?: string;
+        }[];
+      } = {
+        name: "Forehead Item",
+        description:
+          "A magical item collected during your Foreheads adventure.",
+        attributes: [
+          {
+            trait_type: "Type",
+            value: "Adventure Item",
+          },
+          {
+            trait_type: "Owner",
+            value: address,
+          },
+        ],
+      };
+
+      try {
+        const item = await db.query.itemsTable.findFirst({
+          where: and(
+            eq(schema.itemsTable.id, itemId),
+            eq(schema.itemsTable.userId, userId),
+          ),
+        });
+
+        if (item) {
+          nftMetadata.name = item.name;
+          nftMetadata.description = item.description;
+
+          // Add image if available - ensure it's properly formatted for NFT metadata
+          if (item.image) {
+            // If the image doesn't already have a data prefix, add it
+            if (!item.image.startsWith("data:image/")) {
+              nftMetadata.image = `data:image/png;base64,${item.image}`;
+            } else {
+              nftMetadata.image = item.image;
+            }
+          }
+
+          // Add more attributes if available
+          nftMetadata.attributes.push({
+            trait_type: "Item ID",
+            value: item.id,
+          });
+
+          if (item.tokenId) {
+            nftMetadata.attributes.push({
+              trait_type: "Token ID",
+              value: item.tokenId,
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching item metadata:", error);
+        // Continue with default metadata if there's an error
       }
 
       return c.json(nftMetadata);

@@ -1,9 +1,17 @@
 import type { Message } from "ai";
-import { jsonb, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import {
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  varchar,
+} from "drizzle-orm/pg-core";
 import {
   typeId,
   typeIdGenerator,
   type ConversationId,
+  type ItemId,
   type LevelProgressionId,
   type MessageId,
   type UserId,
@@ -15,6 +23,7 @@ export const NFT_MINT_STATUSES = [
   "NOT_MINTED",
   "MINTED",
   "MINTING_FAILED",
+  "MINTING_IN_PROGRESS",
 ] as const;
 export const NftMintStatus = z.enum(NFT_MINT_STATUSES);
 export type NftMintStatus = z.infer<typeof NftMintStatus>;
@@ -27,6 +36,11 @@ export const usersTable = pgTable("users", {
   walletAddress: varchar("wallet_address").notNull(),
   nftContractAddress: varchar("nft_contract_address"),
   profileNftStatus: text("profile_nft_status", { enum: NFT_MINT_STATUSES })
+    .default(NftMintStatus.enum.NOT_MINTED)
+    .notNull()
+    .$type<NftMintStatus>(),
+  itemNftContractAddress: varchar("item_nft_contract_address"),
+  itemNftStatus: text("item_nft_status", { enum: NFT_MINT_STATUSES })
     .default(NftMintStatus.enum.NOT_MINTED)
     .notNull()
     .$type<NftMintStatus>(),
@@ -65,14 +79,10 @@ export const messagesTable = pgTable("messages", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const LEVELS = [
-  "level1-picture",
-  "level1-sheet",
-  "level1",
-  "level2",
-] as const;
+export const LEVELS = ["level1-picture", "level1-sheet", "level"] as const;
 export const Level = z.enum(LEVELS);
 export type Level = z.infer<typeof Level>;
+
 export const Level1PictureSchema = z.object({
   type: z.literal(Level.enum["level1-picture"]),
   prompt: z.string(),
@@ -80,6 +90,17 @@ export const Level1PictureSchema = z.object({
   tokenId: z.number().int().min(0).nullable(),
 });
 export type Level1PictureSchema = z.infer<typeof Level1PictureSchema>;
+
+export const ItemSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  image: z.string(), // base64 encoded image
+  tokenId: z.number().int().min(0).nullable(),
+  contractAddress: z.string(),
+  mintStatus: z.enum(NFT_MINT_STATUSES),
+  transactionHash: z.string().nullable(),
+});
+export type ItemSchema = z.infer<typeof ItemSchema>;
 
 // Define the Character schema
 export const CharacterSchema = z.object({
@@ -189,27 +210,20 @@ export const Level1SheetSchema = z.object({
 });
 export type Level1SheetSchema = z.infer<typeof Level1SheetSchema>;
 
-export const Level1Schema = z.object({
-  type: z.literal(Level.enum.level1),
+export const LevelSchema = z.object({
+  type: z.literal(Level.enum.level),
+  levelIndex: z.number().int().min(0),
   prompt: z.string(),
   characterSheet: CharacterSchema,
-  level1Summary: z.string(),
+  levelSummary: z.string(),
+  items: ItemSchema.array(),
 });
-export type Level1Schema = z.infer<typeof Level1Schema>;
-
-export const Level2Schema = z.object({
-  type: z.literal(Level.enum.level2),
-  prompt: z.string(),
-  characterSheet: CharacterSchema,
-  level2Summary: z.string(),
-});
-export type Level2Schema = z.infer<typeof Level2Schema>;
+export type LevelSchema = z.infer<typeof LevelSchema>;
 
 export const LevelProgressionDataSchema = z.union([
   Level1PictureSchema,
   Level1SheetSchema,
-  Level1Schema,
-  Level2Schema,
+  LevelSchema,
 ]);
 export type LevelProgressionDataSchema = z.infer<
   typeof LevelProgressionDataSchema
@@ -224,6 +238,7 @@ export const levelProgressionTable = pgTable("level_progression", {
     .$defaultFn(() => typeIdGenerator("levelProgression"))
     .$type<LevelProgressionId>(),
   level: text("level", { enum: LEVELS }).notNull().$type<Level>(),
+  levelIndex: integer("level_index").notNull(),
   userId: typeId("user", "user_id")
     .notNull()
     .references(() => usersTable.id)
@@ -236,7 +251,29 @@ export const levelProgressionTable = pgTable("level_progression", {
 export const ToolName2LevelMap = {
   pic: "level1-picture",
   sheet: "level1-sheet",
-  level1: "level1",
-  level2: "level2",
+  level: "level",
 } as const;
 export type ToolName2LevelMap = typeof ToolName2LevelMap;
+
+export const itemsTable = pgTable("items", {
+  id: typeId("item", "id")
+    .primaryKey()
+    .$defaultFn(() => typeIdGenerator("item"))
+    .$type<ItemId>(),
+  userId: typeId("user", "user_id")
+    .notNull()
+    .references(() => usersTable.id)
+    .$type<UserId>(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  image: text("image"),
+  tokenId: varchar("token_id"),
+  contractAddress: varchar("contract_address"),
+  mintStatus: text("mint_status", { enum: NFT_MINT_STATUSES })
+    .default(NftMintStatus.enum.NOT_MINTED)
+    .notNull()
+    .$type<NftMintStatus>(),
+  transactionHash: varchar("transaction_hash"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
