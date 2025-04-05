@@ -393,7 +393,7 @@ async function completeLevel(props: {
           aiClient,
         });
 
-        if (mintResult.tokenId && mintResult.itemId) {
+        if (mintResult.tokenId !== null && mintResult.itemId !== null) {
           mintedItems.push({
             name: item.name,
             description: item.description,
@@ -513,7 +513,7 @@ export const handleItemNftMint = async (props: {
       uri: tokenURI,
     });
 
-    if (!mintResult.tokenId) {
+    if (mintResult.tokenId === null) {
       throw new Error("Failed to mint item NFT");
     }
 

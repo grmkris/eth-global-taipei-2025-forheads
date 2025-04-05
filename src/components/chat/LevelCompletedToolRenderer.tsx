@@ -96,8 +96,9 @@ const Level1PictureRenderer = (props: {
 }) => {
   const imageSrc = `data:image/png;base64,${props.imagebase64}`;
   console.log("props.nftContractAddress", props);
+  
   const openSeaUrl =
-    props.nftContractAddress && props.tokenId
+    props.nftContractAddress && props.tokenId !== null
       ? `https://opensea.io/item/flow/${props.nftContractAddress}/${props.tokenId}`
       : null;
 
@@ -127,7 +128,7 @@ const Level1PictureRenderer = (props: {
           className="rounded"
         />
       )}
-      {props.tokenId && <p className="text-xs">Token ID: {props.tokenId}</p>}
+      {props.tokenId !== null && <p className="text-xs">Token ID: {props.tokenId}</p>}
       {props.nftContractAddress && (
         <p
           className="text-xs truncate max-w-[150px]"
@@ -228,10 +229,10 @@ const LevelRenderer = (props: { level: LevelSchema }) => {
                 <p className="text-xs text-center text-muted-foreground">
                   {item.description}
                 </p>
-                {item.tokenId && (
+                {item.tokenId !== null && (
                   <p className="text-xs mt-1">Token ID: {item.tokenId}</p>
                 )}
-                {item.contractAddress && item.tokenId && (
+                {item.contractAddress && item.tokenId !== null && (
                   <a
                     href={`https://opensea.io/item/flow/${item.contractAddress}/${item.tokenId}`}
                     target="_blank"
