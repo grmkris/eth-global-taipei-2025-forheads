@@ -1,4 +1,4 @@
-export const picPromptGenerator = () => {
+export const combatRulesPromptGenerator = () => {
     return `
     # D&D Combat Guide for New Dungeon Masters
 

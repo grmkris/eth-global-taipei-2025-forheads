@@ -1,7 +1,11 @@
-import { experimental_generateImage } from "ai";
+import {
+  experimental_generateImage,
+  generateText as generateTextAi,
+  streamText as streamTextAi,
+  generateObject as generateObjectAi,
+  streamObject as streamObjectAi,
+} from "ai";
 import { type AIModelConfig, getModel } from "./providers";
-import { LiteralClient } from "@literalai/client";
-import { serverEnv } from "../serverEnv";
 
 export interface AiClientConfig {
   providerConfigs: {
@@ -9,15 +13,6 @@ export interface AiClientConfig {
   };
 }
 export type AiProviderCredentials = AiClientConfig["providerConfigs"];
-
-const literalAiClient = new LiteralClient({
-  apiKey: serverEnv.LITERAL_API_KEY,
-});
-
-const streamText = literalAiClient.instrumentation.vercel.streamText;
-const generateText = literalAiClient.instrumentation.vercel.generateText;
-const generateObject = literalAiClient.instrumentation.vercel.generateObject;
-const streamObject = literalAiClient.instrumentation.vercel.streamObject;
 
 export const createAiClient = (config: AiClientConfig) => {
   return {
@@ -35,10 +30,10 @@ export const createAiClient = (config: AiClientConfig) => {
           throw new Error(`Unsupported provider: ${JSON.stringify(aiConfig)}`);
       }
     },
-    generateObject,
-    streamObject,
-    generateText,
-    streamText,
+    generateObject: generateObjectAi,
+    streamObject: streamObjectAi,
+    generateText: generateTextAi,
+    streamText: streamTextAi,
     generateImage: experimental_generateImage,
   };
 };

@@ -106,26 +106,26 @@ export const CharacterSchema = z.object({
         name: z.string(),
         equipped: z.boolean(),
         description: z.string(),
-      })
+      }),
     ),
     consumables: z.array(
       z.object({
         name: z.string(),
         quantity: z.number().int().min(0),
         description: z.string(),
-      })
+      }),
     ),
     valuables: z.array(
       z.object({
         name: z.string(),
         quantity: z.number().int().min(0),
-      })
+      }),
     ),
     other_items: z.array(
       z.object({
         name: z.string(),
         description: z.string(),
-      })
+      }),
     ),
     carry_capacity: z.object({
       current_weight: z.number().min(0),
@@ -140,21 +140,21 @@ export const CharacterSchema = z.object({
         location: z.string(),
         disposition: z.number().int(),
         notes: z.string(),
-      })
+      }),
     ),
     enemies: z.array(
       z.object({
         name: z.string(),
         description: z.string(),
         status: z.string(),
-      })
+      }),
     ),
     neutral: z.array(
       z.object({
         name: z.string(),
         disposition: z.number().int(),
         notes: z.string(),
-      })
+      }),
     ),
   }),
 });
@@ -194,3 +194,17 @@ export const levelProgressionTable = pgTable("level_progression", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+
+// const finishLevelTool = tool({
+//   description: "Call this tool to finish the level",
+//   parameters: z.object({
+//     level: z.enum(["pic", "sheet"]),
+//     data: z.string(),
+//  }),
+export const ToolName2LevelMap = {
+  "pic": "level1-picture",
+  "sheet": "level1-sheet",
+} as const;
+export type ToolName2LevelMap = typeof ToolName2LevelMap;
+

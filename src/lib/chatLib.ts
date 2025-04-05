@@ -1,6 +1,7 @@
 import type { Message } from "ai";
 import { apiClient } from "./apiClient";
 import { z } from "zod";
+import type { Level } from "@/server/db/chat/chat.db";
 
 export const MessageSchema = z.custom<Omit<Message, "data" | "annotations">>();
 export type MessageSchema = z.infer<typeof MessageSchema>;
@@ -13,5 +14,16 @@ export const getConversation = async (address: string) => {
     throw new Error("Failed to get conversation");
   }
   const data = await convo.json();
+  return data;
+};
+
+export const getProgression = async (address: string, level: Level) => {
+  const progression = await apiClient.progression.$get({
+    query: { address, level },
+  });
+  if (progression.status !== 200) {
+    throw new Error("Failed to get progression");
+  }
+  const data = await progression.json();
   return data;
 };

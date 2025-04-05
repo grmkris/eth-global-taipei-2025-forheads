@@ -1,4 +1,4 @@
-export const picPromptGenerator = () => {
+export const map1PromptGenerator = () => {
     return `
     # THE FORGOTTEN SHRINE
 ## Overview

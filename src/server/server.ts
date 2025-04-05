@@ -2,7 +2,7 @@ import * as schema from "./db/schema";
 import { typeIdGenerator, type UserId } from "./db/typeid";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { eq, asc } from "drizzle-orm";
+import { eq, asc, and } from "drizzle-orm";
 import { cors } from "hono/cors";
 import { requestId } from "hono/request-id";
 import { logger } from "hono/logger";
@@ -25,7 +25,7 @@ const db = createDb({
 });
 
 const literalaiClient = new LiteralClient({
-    apiKey: serverEnv.LITERAL_API_KEY
+  apiKey: serverEnv.LITERAL_API_KEY,
 });
 
 // Create the Hono app
@@ -242,33 +242,35 @@ export const app = new Hono()
                   })
                   .send();
 
-                 // Create a step for the agent processing
+                // Create a step for the agent processing
                 const agentStep = literalaiClient.step({
-                    type: 'llm', // Or 'agent' if more appropriate
-                    name: 'GameAgent Stream',
-                    input: { content: userMessage.content }, // Agent input is user message
+                  type: "llm", // Or 'agent' if more appropriate
+                  name: "GameAgent Stream",
+                  input: { content: userMessage.content }, // Agent input is user message
                 });
 
                 try {
-                    // Process with agent within the Literal AI step context
-                    const dataAgentStream = await gameAgent.queryStream({
+                  // Process with agent within the Literal AI step context
+                  const dataAgentStream = await gameAgent.queryStream({
                     dataStreamWriter,
                     message: userMessage,
                     chatHistoryService,
-                    });
-                    dataAgentStream.mergeIntoDataStream(dataStreamWriter);
+                  });
+                  dataAgentStream.mergeIntoDataStream(dataStreamWriter);
 
-                    // Mark the agent step as complete (output might be harder to capture directly with streams)
-                    // You might need a way to capture the final streamed output if needed for Literal AI logging.
-                    // For now, we just mark it sent. We could potentially log the stream status or final message ID.
-                    await agentStep.send();
-
+                  // Mark the agent step as complete (output might be harder to capture directly with streams)
+                  // You might need a way to capture the final streamed output if needed for Literal AI logging.
+                  // For now, we just mark it sent. We could potentially log the stream status or final message ID.
+                  await agentStep.send();
                 } catch (agentError) {
-                   console.error("Error during game agent execution:", agentError);
-                   // Log error to Literal AI step
-                   await agentStep.send();
-                   // Re-throw error to be caught by the outer handler if necessary
-                   throw agentError;
+                  console.error(
+                    "Error during game agent execution:",
+                    agentError,
+                  );
+                  // Log error to Literal AI step
+                  await agentStep.send();
+                  // Re-throw error to be caught by the outer handler if necessary
+                  throw agentError;
                 }
               });
           },
@@ -278,7 +280,6 @@ export const app = new Hono()
             return error instanceof Error ? error.message : String(error);
           },
         });
-
 
         // Mark the response as a v1 data stream
         c.header("X-Vercel-AI-Data-Stream", "v1");
@@ -290,6 +291,24 @@ export const app = new Hono()
         // Consider logging the overall error to Literal AI if not caught within the thread wrap
         return c.json({ error: "Failed to process message" }, 500);
       }
+    },
+  )
+
+
+  // get progression data for a user
+  .get(
+    "/progression",
+    zValidator("query", z.object({ address: z.string(), level: schema.Level })),
+    async (c) => {
+      const address = c.req.valid("query").address;
+      const level = c.req.valid("query").level;
+      const userId = await getUserIdFromContext(address);
+
+      const progression = await db.query.levelProgressionTable.findMany({
+        where: and(eq(schema.levelProgressionTable.userId, userId), eq(schema.levelProgressionTable.level, level)),
+      });
+
+      return c.json(progression);
     },
   );
 

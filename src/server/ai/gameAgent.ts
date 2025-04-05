@@ -40,6 +40,10 @@ const systemPrompt = async (props: { db: db; userId: UserId }) => {
   return picPromptGenerator();
 };
 
+export const AGENT_LEVELS = ["pic", "sheet"] as const;
+export const AgentLevel = z.enum(AGENT_LEVELS);
+export type AgentLevel = z.infer<typeof AgentLevel>;
+
 export const createGameAgent = (props: {
   deps: {
     aiClient: AiClient;
@@ -52,72 +56,57 @@ export const createGameAgent = (props: {
   const finishLevelTool = tool({
     description: "Call this tool to finish the level",
     parameters: z.object({
-      level: z.enum(["pic", "sheet"]),
+      level: AgentLevel,
       data: z.string(),
     }),
     execute: async (args) => {
       try {
         switch (args.level) {
           case "pic": {
-          console.log({
-            msg: "Finish level tool, pic should be generated now",
-            args,
-          });
-
-          const image = await generateCharacterPic({
-            aiClient,
-            prompt: args.data,
-          });
-
-          // insert into database the fact that the level was finished
-          await db.insert(levelProgressionTable).values({
-            level: "level1-picture",
-            userId: props.userId,
-            data: {
-              type: "level1-picture",
+            const image = await generateCharacterPic({
+              aiClient,
               prompt: args.data,
-              image: image,
-            } satisfies Level1PictureSchema,
-          });
-          console.log({
-            msg: "Picture generated and user moved to next level",
-          });
-          return {
-            msg: "Picture generated and user moved to next level",
-          };
-        }
-        case "sheet": {
-          console.log({
-            msg: "Finish level tool, sheet should be generated now",
-            args,
-          });
-
-          const characterSheet = await generateCharacterSheet({
-            aiClient,
-            prompt: args.data,
-          });
-          // save the sheet to the database
-          await db.insert(levelProgressionTable).values({
-            level: "level1-sheet",
-            userId: props.userId,
-            data: {
-              type: "level1-sheet",
+            });
+            await db.insert(levelProgressionTable).values({
+              level: "level1-picture",
+              userId: props.userId,
+              data: {
+                type: "level1-picture",
+                prompt: args.data,
+                image: image,
+              } satisfies Level1PictureSchema,
+            });
+            return {
+              msg: "Picture generated and user moved to next level",
+            };
+          }
+          case "sheet": {
+            const characterSheet = await generateCharacterSheet({
+              aiClient,
               prompt: args.data,
-              characterSheet: characterSheet,
-            } satisfies Level1SheetSchema,
-          });
-          return {
-            msg: "Sheet generated and user moved to next level",
-          };
+            });
+            // save the sheet to the database
+            await db.insert(levelProgressionTable).values({
+              level: "level1-sheet",
+              userId: props.userId,
+              data: {
+                type: "level1-sheet",
+                prompt: args.data,
+                characterSheet: characterSheet,
+              } satisfies Level1SheetSchema,
+            });
+            return {
+              msg: "Sheet generated and user moved to next level",
+            };
+          }
         }
-      }
-    } catch (error) {
-      console.error({
-        msg: "Error in finish level tool",
-        error,
-      });
-      return {
-        msg: "Error in finish level tool, ask the user to try again",
+      } catch (error) {
+        console.error({
+          msg: "Error in finish level tool",
+          error,
+        });
+        return {
+          msg: "Error in finish level tool, ask the user to try again",
           error: error instanceof Error ? error.message : String(error),
         };
       }
@@ -143,8 +132,7 @@ export const createGameAgent = (props: {
       });
 
       console.log({
-        msg: "Messages sent to AI",
-        messages: messagesForAi,
+        messagesForAi: messagesForAi.length,
       });
 
       const result = aiClient.streamText({
@@ -180,7 +168,7 @@ export const createGameAgent = (props: {
         messages: messagesForAi,
         system: await systemPrompt({ db, userId: props.userId }),
         model: aiClient.getModel({
-          modelId: "gemini-2.0-flash-exp",
+          modelId: "gemini-2.5-pro-exp-03-25",
           provider: "google",
         }),
         experimental_generateMessageId: () => typeIdGenerator("message"),
