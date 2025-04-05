@@ -7,12 +7,7 @@ export default async function Home() {
   const initalMessages: Message[] = [];
   for (const m of data) {
     initalMessages.push({
-      content: m.message.content,
-      role: m.message.role,
-      id: m.message.id,
-      annotations: m.message.annotations,
-      experimental_attachments: m.message.experimental_attachments,
-      parts: m.message.parts,
+      ...m.message,
       createdAt: m.message.createdAt
         ? new Date(m.message.createdAt)
         : undefined,
