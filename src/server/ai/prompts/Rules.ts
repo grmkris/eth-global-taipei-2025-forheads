@@ -2,6 +2,13 @@ export const combatRulesPromptGenerator = () => {
     return `
     # D&D Combat Guide for New Dungeon Masters
 
+Roll Rule: Roll dice and add modifiers. Always adjust results based on roleplay quality:
+
++1 to +2 if player's choice aligns with character's established backstory/traits
+-1 to -2 if player's choice contradicts character's established backstory/traits
+
+Players roll openly when making their own checks. DM rolls secretly but announces when rolls are being made. All rolls receive character-based adjustments regardless of who rolls.
+
 ## Combat Overview
 Combat in D&D is structured, turn-based, and revolves around a clear sequence of actions. As DM, you'll be responsible for managing enemy turns, describing the environment, and adjudicating rules.
 
@@ -152,5 +159,5 @@ Remember that as DM, you have the final say on rules interpretations. The goal i
 
 Combat should be dramatic and exciting—don't be afraid to add environmental effects, unexpected events, or dynamic elements to make encounters memorable!
   `;
-  };
+};
   
