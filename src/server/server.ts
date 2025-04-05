@@ -16,7 +16,7 @@ import { createGameAgent } from "./ai/gameAgent";
 import { createDrizzleChatHistoryService } from "./ai/chatHistoryService";
 import { createAiClient } from "./ai/aiClient";
 import { LiteralClient } from "@literalai/client";
-import { isAddress } from "viem";
+import { getAddress, isAddress } from "viem";
 import { handlePicLevel } from "./ai/agentTools";
 
 const db = createDb({
@@ -548,7 +548,7 @@ export type AppType = typeof app;
 async function getUserIdFromContext(address: string): Promise<UserId> {
   // check create user with wallet address
   const existingUser = await db.query.usersTable.findFirst({
-    where: eq(schema.usersTable.walletAddress, address),
+    where: eq(schema.usersTable.walletAddress, getAddress(address)),
   });
   if (!existingUser) {
     const userId = typeIdGenerator("user");
@@ -557,7 +557,7 @@ async function getUserIdFromContext(address: string): Promise<UserId> {
       .insert(schema.usersTable)
       .values({ 
           id: userId, 
-          walletAddress: address, 
+          walletAddress: getAddress(address), 
       });
     console.log(`Created new user ${userId} for address ${address}.`);
     return userId;

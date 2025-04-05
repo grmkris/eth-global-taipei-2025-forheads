@@ -55,6 +55,7 @@ type AIMessageProps = Omit<
 };
 
 function AIMessage({ fullMessage, ...props }: AIMessageProps) {
+  console.log("AIMessage", fullMessage);
   // Separate text and tool parts
   const textParts = fullMessage.parts?.filter((part) => part?.type === "text") || [];
   const toolInvocationParts = fullMessage.parts?.filter(
@@ -62,6 +63,8 @@ function AIMessage({ fullMessage, ...props }: AIMessageProps) {
         part?.type === "tool-invocation",
     ) || [];
 
+
+  console.log("toolInvocationParts", toolInvocationParts);
   // Render message content with text first, then tool calls
   const messageContent = (
     <div>
