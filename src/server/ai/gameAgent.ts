@@ -11,15 +11,21 @@ import type { ChatHistoryService } from "./chatHistoryService";
 import { picPromptGenerator } from "./prompts/01-Pic";
 import { z } from "zod";
 import {
+  type Level1Schema,
   levelProgressionTable,
+  type CharacterSchema,
   type Level1PictureSchema,
   type Level1SheetSchema,
+  type Level2Schema,
 } from "../db/chat/chat.db";
 import type { db } from "../db/db";
 import { generateCharacterPic } from "./generateCharacterPic";
 import { generateCharacterSheet } from "./generateCharacterPic";
 import { sheetMakerPromptGenerator } from "./prompts/02-SheetMaker";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
+import { level1PromptGenerator } from "./prompts/03-Level1";
+import { level2PromptGenerator } from "./prompts/04-Level2";
+
 const systemPrompt = async (props: { db: db; userId: UserId }) => {
   const { db, userId } = props;
   const levelProgression = await db.query.levelProgressionTable.findMany({
@@ -31,16 +37,31 @@ const systemPrompt = async (props: { db: db; userId: UserId }) => {
     return picPromptGenerator();
   }
 
-  // if there is a level progression, return the next level prompt
   const latestLevel = levelProgression[levelProgression.length - 1];
-  if (latestLevel.level === "level1-picture") {
-    return sheetMakerPromptGenerator();
+
+  switch (latestLevel.data.type) {
+    case "level1-picture": {  
+      return sheetMakerPromptGenerator();
+    }
+    case "level1-sheet": {
+      return level1PromptGenerator({
+        characterSheet: latestLevel.data.characterSheet,
+      });
+    }
+    case "level1": {
+      return level1PromptGenerator({
+        characterSheet: latestLevel.data.characterSheet,
+      });
+    }
+    case "level2": {
+      return level2PromptGenerator({
+        characterSheet: latestLevel.data.characterSheet,
+      });
+    }
   }
+}
 
-  return picPromptGenerator();
-};
-
-export const AGENT_LEVELS = ["pic", "sheet"] as const;
+export const AGENT_LEVELS = ["pic", "sheet", "level1", "level2"] as const;
 export const AgentLevel = z.enum(AGENT_LEVELS);
 export type AgentLevel = z.infer<typeof AgentLevel>;
 
@@ -62,6 +83,7 @@ export const createGameAgent = (props: {
     execute: async (args) => {
       try {
         switch (args.level) {
+
           case "pic": {
             const image = await generateCharacterPic({
               aiClient,
@@ -99,6 +121,56 @@ export const createGameAgent = (props: {
               msg: "Sheet generated and user moved to next level",
             };
           }
+          case "level1": {
+            const latestLevel = await db.query.levelProgressionTable.findFirst({
+              where: eq(levelProgressionTable.userId, props.userId),
+              orderBy: desc(levelProgressionTable.createdAt),
+            });
+            if (latestLevel?.data.type !== "level1-sheet") {
+              throw new Error("User is not in level 1");
+            }
+            const result = await completeLevel1({
+              characterSheet: latestLevel.data.characterSheet,
+            });
+            console.log({
+              msg: "Level 1 generated and user moved to next level",
+              result,
+            });
+            await db.insert(levelProgressionTable).values({
+              level: "level1",
+              userId: props.userId,
+              data: {
+                type: "level1",
+                prompt: args.data,
+                characterSheet: result.characterSheet,
+                level1Summary: result.level1Summary,
+              } satisfies Level1Schema,
+            });
+            return {
+              msg: "Level 1 generated and user moved to next level",
+            };
+          }
+
+          case "level2": {
+            const latestLevel = await db.query.levelProgressionTable.findFirst({
+              where: eq(levelProgressionTable.userId, props.userId),
+              orderBy: desc(levelProgressionTable.createdAt),
+            });
+            if (latestLevel?.data.type !== "level1") {
+              throw new Error("User is not in level 1");
+            }
+            const result = await completeLevel2({
+              characterSheet: latestLevel.data.characterSheet,
+            });
+            await db.insert(levelProgressionTable).values({
+              level: "level2",
+              userId: props.userId,
+              data: result,
+            });
+            return {
+              msg: "Level 2 generated and user moved to next level",
+            };
+          } 
         }
       } catch (error) {
         console.error({
@@ -180,3 +252,28 @@ export const createGameAgent = (props: {
 };
 
 export type GameAgent = ReturnType<typeof createGameAgent>;
+async function completeLevel1(props: {
+  characterSheet: CharacterSchema;
+}) {
+  console.log("completeLevel1", props);
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  return {
+    characterSheet: props.characterSheet,
+    level1Summary: "This is a test",
+    prompt: "This is a test",
+    type: "level1",
+  } satisfies Level1Schema;
+}
+
+async function completeLevel2(props: {
+  characterSheet: CharacterSchema;
+}) {
+  console.log("completeLevel2", props);
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  return {
+    characterSheet: props.characterSheet,
+    level2Summary: "This is a test",
+    prompt: "This is a test",
+    type: "level2",
+  } satisfies Level2Schema;
+}

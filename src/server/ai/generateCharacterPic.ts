@@ -28,7 +28,7 @@ export const generateCharacterPic = async (props: {
       return file.base64;
     }
   }
-  throw new Error("No image found in response");  
+  throw new Error("No image found in response");
 };
 
 export const generateCharacterSheet = async (props: {
