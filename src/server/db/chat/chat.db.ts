@@ -10,12 +10,26 @@ import {
 } from "@/server/db/typeid";
 import { z } from "zod";
 
+// Define the Zod enum for NFT minting status
+export const NFT_MINT_STATUSES = [
+  'NOT_MINTED', 
+  'MINTED', 
+  'MINTING_FAILED'
+] as const;
+export const NftMintStatus = z.enum(NFT_MINT_STATUSES);
+export type NftMintStatus = z.infer<typeof NftMintStatus>;
+
 export const usersTable = pgTable("users", {
   id: typeId("user", "id")
     .primaryKey()
     .$defaultFn(() => typeIdGenerator("user"))
     .$type<UserId>(),
   walletAddress: varchar("wallet_address").notNull(),
+  nftContractAddress: varchar("nft_contract_address"),
+  profileNftStatus: text("profile_nft_status", { enum: NFT_MINT_STATUSES })
+    .default(NftMintStatus.enum.NOT_MINTED)
+    .notNull()
+    .$type<NftMintStatus>(),
 });
 
 // Conversations table
@@ -213,13 +227,6 @@ export const levelProgressionTable = pgTable("level_progression", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-
-// const finishLevelTool = tool({
-//   description: "Call this tool to finish the level",
-//   parameters: z.object({
-//     level: z.enum(["pic", "sheet"]),
-//     data: z.string(),
-//  }),
 export const ToolName2LevelMap = {
   "pic": "level1-picture",
   "sheet": "level1-sheet",

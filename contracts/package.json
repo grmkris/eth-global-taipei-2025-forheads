@@ -35,6 +35,8 @@
     "test:coverage:report": "forge coverage --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage",
     "deploy:local": "forge script script/Deploy.s.sol:Deploy --fork-url http://localhost:8545 -vvvv",
     "deploy:sepolia": "source .env && forge script script/Deploy.s.sol:Deploy --rpc-url $SEPOLIA_RPC_URL --private-key $PRIVATE_KEY --broadcast --verify -vvvv",
+    "deploy:flow": "source .env && forge script script/Deploy.s.sol:Deploy --rpc-url $FLOW_RPC_URL --private-key $PRIVATE_KEY --broadcast --verify --verifier blockscout --verifier-url https://evm-testnet.flowscan.io/api",
+    "deploy:flow:mainnet": "source .env && forge script script/Deploy.s.sol:Deploy --rpc-url $FLOW_MAINNET_RPC_URL --private-key $PRIVATE_KEY --broadcast --verify --verifier blockscout --verifier-url https://evm.flowscan.io/api",
     "deployer:address": "source .env && cast wallet address --private-key $PRIVATE_KEY"
   },
   "pnpm": {

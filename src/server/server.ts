@@ -2,7 +2,7 @@ import * as schema from "./db/schema";
 import { typeIdGenerator, type UserId } from "./db/typeid";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { eq, asc, and } from "drizzle-orm";
+import { eq, asc, and, desc } from "drizzle-orm";
 import { cors } from "hono/cors";
 import { requestId } from "hono/request-id";
 import { logger } from "hono/logger";
@@ -16,6 +16,8 @@ import { createGameAgent } from "./ai/gameAgent";
 import { createDrizzleChatHistoryService } from "./ai/chatHistoryService";
 import { createAiClient } from "./ai/aiClient";
 import { LiteralClient } from "@literalai/client";
+import { isAddress } from "viem";
+import { handlePicLevel } from "./ai/agentTools";
 
 const db = createDb({
   logger: {
@@ -304,13 +306,224 @@ export const app = new Hono()
       const level = c.req.valid("query").level;
       const userId = await getUserIdFromContext(address);
 
-      const progression = await db.query.levelProgressionTable.findMany({
-        where: and(eq(schema.levelProgressionTable.userId, userId), eq(schema.levelProgressionTable.level, level)),
+      // Fetch specific level progression data
+      const progressionData = await db.query.levelProgressionTable.findMany({
+        where: and(
+          eq(schema.levelProgressionTable.userId, userId),
+          eq(schema.levelProgressionTable.level, level),
+        ),
+         // Optionally add ordering if multiple entries per level are possible
+        orderBy: [desc(schema.levelProgressionTable.createdAt)],
       });
 
-      return c.json(progression);
+
+      // Return the specific progression data found for that level
+      // If you only expect one entry per level, you might use findFirst
+      return c.json(progressionData);
     },
-  );
+  )
+
+  // get NFT metadata for an address
+  .get(
+    "/nft-metadata",
+    zValidator("query", z.object({ address: z.string() })),
+    async (c) => {
+      const address = c.req.valid("query").address;
+      const userId = await getUserIdFromContext(address);
+
+      // Fetch all level progression entries for the user, sorted by latest first
+      const levelProgressionEntries = await db.query.levelProgressionTable.findMany({
+          where: eq(schema.levelProgressionTable.userId, userId),
+          orderBy: [desc(schema.levelProgressionTable.createdAt)], // Sort descending
+      });
+
+      let latestImage: string | null = null;
+      let latestCharacterSheet: schema.CharacterSchema | null = null;
+      let latestSummary: string | null = null;
+      let highestLevel: schema.Level | null = null;
+      // Define level order for potential future use if needed
+      // const levelOrder = schema.LEVELS;
+
+      // Find the latest relevant data by iterating through sorted entries
+      for (const entry of levelProgressionEntries) {
+          // Find latest image from level1-picture
+          if (!latestImage && entry.level === "level1-picture") {
+              const parsedData = schema.Level1PictureSchema.safeParse(entry.data);
+              if (parsedData.success) {
+                  latestImage = parsedData.data.image;
+              }
+          }
+
+          // Find latest character sheet from sheet, level1, or level2
+          if (!latestCharacterSheet) {
+              let parsedSheetData = null;
+              if (entry.level === "level1-sheet") {
+                  parsedSheetData = schema.Level1SheetSchema.safeParse(entry.data);
+              } else if (entry.level === "level1") {
+                  parsedSheetData = schema.Level1Schema.safeParse(entry.data);
+              } else if (entry.level === "level2") {
+                   parsedSheetData = schema.Level2Schema.safeParse(entry.data);
+              }
+
+              if (parsedSheetData?.success && 'characterSheet' in parsedSheetData.data) {
+                   latestCharacterSheet = parsedSheetData.data.characterSheet;
+              }
+          }
+
+          // Find latest summary from level1 or level2
+          if (!latestSummary) {
+              if (entry.level === "level1") {
+                   const parsedData = schema.Level1Schema.safeParse(entry.data);
+                   if (parsedData.success) latestSummary = parsedData.data.level1Summary;
+              } else if (entry.level === "level2") {
+                   const parsedData = schema.Level2Schema.safeParse(entry.data);
+                   if (parsedData.success) latestSummary = parsedData.data.level2Summary;
+              }
+          }
+
+          // Determine the highest level based on the first entry encountered (due to sorting)
+           if (highestLevel === null && entry.level) {
+              highestLevel = entry.level;
+          }
+
+
+          // Optimization: if we found the latest of each relevant piece, stop iterating
+          // Note: We check highestLevel last as it's determined by the very first entry
+          if (latestImage && latestCharacterSheet && latestSummary && highestLevel) {
+              break;
+          }
+      }
+
+
+      // --- Construct OpenSea Metadata ---
+      const nftMetadata: {
+          name: string;
+          description: string;
+          image?: string;
+          external_url?: string; // Optional: Add later if needed
+          attributes: { trait_type: string; value: string | number; display_type?: string }[];
+      } = {
+          name: "My Forehead Character", // Default name
+          description: "A unique character generated through AI interaction in the Foreheads game.", // Default description
+          attributes: [],
+      };
+
+      // Set image if found
+      if (latestImage) {
+          // Assuming PNG format for the base64 image from Level1PictureSchema
+          nftMetadata.image = `data:image/png;base64,${latestImage}`;
+      } else {
+          // Optional: Provide a default placeholder image URL
+          // nftMetadata.image = "https://example.com/placeholder.png";
+      }
+
+      // Populate details from the character sheet if found
+      if (latestCharacterSheet) {
+          const char = latestCharacterSheet.character;
+          const attrs = latestCharacterSheet.attributes;
+          const status = latestCharacterSheet.status;
+          const profs = latestCharacterSheet.proficiencies;
+
+          nftMetadata.name = char.name || nftMetadata.name; // Use character name if available
+          nftMetadata.description = char.background || nftMetadata.description; // Use background if available
+           if (latestSummary) {
+              // Append summary, use Markdown newline
+              nftMetadata.description += `\n\nLatest Progress: ${latestSummary}`;
+          }
+
+          // --- Add Attributes ---
+
+          // Basic Info
+          if (char.race) nftMetadata.attributes.push({ trait_type: "Race", value: char.race });
+          if (char.class) nftMetadata.attributes.push({ trait_type: "Class", value: char.class });
+          if (char.level !== undefined) nftMetadata.attributes.push({ trait_type: "Level", value: char.level, display_type: "number" });
+          if (char.alignment) nftMetadata.attributes.push({ trait_type: "Alignment", value: char.alignment });
+
+          // Core Attributes
+          if (attrs.strength !== undefined) nftMetadata.attributes.push({ trait_type: "Strength", value: attrs.strength, display_type: "number" });
+          if (attrs.dexterity !== undefined) nftMetadata.attributes.push({ trait_type: "Dexterity", value: attrs.dexterity, display_type: "number" });
+          if (attrs.constitution !== undefined) nftMetadata.attributes.push({ trait_type: "Constitution", value: attrs.constitution, display_type: "number" });
+          if (attrs.intelligence !== undefined) nftMetadata.attributes.push({ trait_type: "Intelligence", value: attrs.intelligence, display_type: "number" });
+          if (attrs.wisdom !== undefined) nftMetadata.attributes.push({ trait_type: "Wisdom", value: attrs.wisdom, display_type: "number" });
+          if (attrs.charisma !== undefined) nftMetadata.attributes.push({ trait_type: "Charisma", value: attrs.charisma, display_type: "number" });
+
+          // Status (only include if not null/undefined)
+          if (status.max_hp !== null && status.max_hp !== undefined) nftMetadata.attributes.push({ trait_type: "Max HP", value: status.max_hp, display_type: "number" });
+          if (status.armor_class !== null && status.armor_class !== undefined) nftMetadata.attributes.push({ trait_type: "Armor Class", value: status.armor_class, display_type: "number" });
+          if (status.speed !== null && status.speed !== undefined) nftMetadata.attributes.push({ trait_type: "Speed", value: status.speed, display_type: "number" });
+
+           // Proficiencies (combine into strings for simplicity or list individually)
+           if (profs.skills && profs.skills.length > 0) {
+              nftMetadata.attributes.push({ trait_type: "Skills", value: profs.skills.join(', ') });
+           }
+           if (profs.languages && profs.languages.length > 0) {
+              nftMetadata.attributes.push({ trait_type: "Languages", value: profs.languages.join(', ') });
+           }
+            // Consider adding weapons, armor, tools similarly if desired
+      }
+
+       // Add highest completed level/stage as a trait
+       if (highestLevel) {
+         // Map internal level name to a more user-friendly name
+         const levelNameMap: Partial<Record<schema.Level, string>> = {
+             "level1-picture": "Stage 1: Picture",
+             "level1-sheet": "Stage 2: Sheet",
+             "level1": "Stage 3: Level 1 Summary",
+             "level2": "Stage 4: Level 2 Summary",
+         };
+         nftMetadata.attributes.push({ trait_type: "Highest Stage Reached", value: levelNameMap[highestLevel] || highestLevel });
+       }
+
+      return c.json(nftMetadata);
+    },
+  )
+
+  // Add the test endpoint back
+  .get(
+    "/test-handle-pic",
+    zValidator("query", z.object({ address: z.string().refine(isAddress, "Invalid address format") })),
+    async (c) => {
+      const address = c.req.valid("query").address;
+      console.log(`[Test Endpoint] Testing handlePicLevel for address: ${address}`);
+
+      try {
+        const userId = await getUserIdFromContext(address);
+
+        // Ensure user exists (or create if not)
+        await db
+          .insert(schema.usersTable)
+          .values({ id: userId, walletAddress: address })
+          .onConflictDoNothing();
+
+        // Create necessary dependencies for handlePicLevel
+        const aiClient = createAiClient({
+          providerConfigs: {
+            googleGeminiApiKey: serverEnv.GOOGLE_GEMINI_API_KEY,
+          },
+        });
+
+        // Define a sample prompt for testing
+        const testPrompt = "Generate a picture of a fairy cat with a pink background and unicorn horns and wings";
+
+        // Call handlePicLevel
+        const result = await handlePicLevel({
+          userId,
+          aiClient,
+          db,
+          prompt: testPrompt,
+        });
+
+        console.log("[Test Endpoint] handlePicLevel result:", result);
+
+        // Return the result
+        return c.json(result);
+
+      } catch (error) {
+        console.error("[Test Endpoint] Error calling handlePicLevel:", error);
+        return c.json({ error: "Failed to execute handlePicLevel test" }, 500);
+      }
+    },
+  )
 
 export type AppType = typeof app;
 
@@ -321,10 +534,16 @@ async function getUserIdFromContext(address: string): Promise<UserId> {
   });
   if (!existingUser) {
     const userId = typeIdGenerator("user");
+    // Just create the basic user record
     await db
       .insert(schema.usersTable)
-      .values({ id: userId, walletAddress: address });
+      .values({ 
+          id: userId, 
+          walletAddress: address, 
+      });
+    console.log(`Created new user ${userId} for address ${address}.`);
     return userId;
   }
+  console.log(`Found existing user ${existingUser.id} for address ${address}.`);
   return existingUser.id;
 }

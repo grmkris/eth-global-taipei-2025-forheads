@@ -18,7 +18,14 @@ export const generateCharacterPic = async (props: {
     temperature: 1,
     prompt: prompt,
   });
+  console.log({
+    msg: "qqqqqqqqq",
+    response: response.files.length,
+  });
   for (const file of response.files) {
+    console.log({
+      file,
+    });
     if (file.mimeType.startsWith("image/")) {
       // The file object provides multiple data formats:
       // Access images as base64 string, Uint8Array binary data, or check type
