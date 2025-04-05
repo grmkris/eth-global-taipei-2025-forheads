@@ -7,14 +7,34 @@ import { ChatContainer } from "@/components/chat/ChatContainer";
 import { AIMessage } from "@/components/chat/AIMessage";
 import { UserMessage } from "@/components/chat/UserMessage";
 import { ChatInputBar } from "@/components/chat/ChatInputBar";
+import { typeIdGenerator, type ConversationId } from "@/server/db/typeid";
 
-export function ChatInterface({ messages }: { messages: Message[] }) {
+export function ChatInterface(props: { messages: Message[], conversationId: ConversationId,  }) {
   const chat = useChat({
     api: "/api/conversation",
-    initialMessages: messages,
+    id: props.conversationId,
+    onToolCall: (toolCall) => {
+      console.log("useChat onToolCall", toolCall);
+    },
+    onFinish: async (message) => {
+      console.log("useChat onFinish", message);
+    },
+    generateId: () => typeIdGenerator("message"),
+    credentials: "include",
+    initialMessages: props.messages,
+    onResponse: (response) => {
+      console.log("useChat onResponse", response);
+    },
+    sendExtraMessageFields: true,
+    // only send the last message to the server:
+    // https://sdk.vercel.ai/docs/ai-sdk-ui/chatbot-message-persistence#sending-only-the-last-message
+    experimental_prepareRequestBody({ messages, id }) {
+      return { message: messages[messages.length - 1], id };
+    },
   });
 
   const handleSendMessage = async (content: string) => {
+    console.log("handleSendMessage", content);
     if (!content.trim()) return;
     chat.append({
       content,

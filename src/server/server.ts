@@ -208,7 +208,7 @@ export const app = new Hono()
 
 export type AppType = typeof app;
 
-async function getUserIdFromContext(c: Context): Promise<UserId> {
+async function getUserIdFromContext(): Promise<UserId> {
   const userId = typeIdGenerator("user");
   console.log("getUserIdFromContext");
   // check if user exists, if not create a new user
