@@ -77,10 +77,88 @@ function MessageBubble({
     }
   }, [message]);
 
+  // Clean text for TTS to prevent reading out punctuation marks
+  const cleanTextForTTS = (text: string): string => {
+    // Step 1: Handle special cases first
+    let cleanText = text
+      // Replace common code symbols that might be read out
+      .replace(/\(/g, ' opening parenthesis ')
+      .replace(/\)/g, ' closing parenthesis ')
+      .replace(/\[/g, ' opening bracket ')
+      .replace(/\]/g, ' closing bracket ')
+      .replace(/\{/g, ' opening brace ')
+      .replace(/\}/g, ' closing brace ')
+      .replace(/</g, ' less than ')
+      .replace(/>/g, ' greater than ')
+
+      // Replace URLs with a readable version
+      .replace(/https?:\/\/[^\s]+/g, ' URL link ')
+      
+      // Replace email addresses
+      .replace(/[\w.-]+@[\w.-]+\.\w+/g, ' email address ')
+      
+      // Handle common programming/math symbols
+      .replace(/\+/g, ' plus ')
+      .replace(/\-/g, ' minus ')
+      .replace(/\*/g, ' times ')
+      .replace(/\//g, ' divided by ')
+      .replace(/=/g, ' equals ')
+      .replace(/%/g, ' percent ')
+      .replace(/\$/g, ' dollars ')
+      .replace(/&/g, ' and ')
+      .replace(/\|/g, ' pipe ')
+      .replace(/\\/g, ' backslash ')
+      .replace(/~/g, ' tilde ')
+      .replace(/`/g, ' backtick ')
+      .replace(/^/g, ' caret ')
+      .replace(/#/g, ' hash ');
+    
+    // Step 2: Remove punctuation that should not be spoken and shouldn't be replaced with words
+    cleanText = cleanText
+      // Replace common sentence punctuation with pauses
+      .replace(/\./g, ', ')
+      .replace(/,/g, ', ')
+      .replace(/;/g, ', ')
+      .replace(/:/g, ', ')
+      
+      // Replace question and exclamation marks with slightly longer pauses
+      .replace(/\?/g, ', ')
+      .replace(/!/g, ', ')
+      
+      // Replace quotes and other paired marks
+      .replace(/"/g, ' ')
+      .replace(/'/g, ' ')
+      .replace(/"/g, ' ')
+      .replace(/"/g, ' ')
+      .replace(/'/g, ' ')
+      .replace(/'/g, ' ')
+      .replace(/«/g, ' ')
+      .replace(/»/g, ' ')
+      
+      // Normalize dashes and hyphens
+      .replace(/—/g, ', ')
+      .replace(/–/g, ', ')
+      .replace(/-/g, ' ')
+      
+      // Remove any other special characters
+      .replace(/[^\w\s,]/g, ' ');
+
+    // Step 3: Clean up the whitespace
+    cleanText = cleanText
+      // Replace multiple spaces/commas with a single instance
+      .replace(/\s+/g, ' ')
+      .replace(/,\s*,/g, ',')
+      // Trim any leading/trailing whitespace
+      .trim();
+      
+    return cleanText;
+  };
+
   const playTTS = async () => {
     try {
-      // Use the extracted text from the rendered DOM
-      const messageText = extractedText || "No text available";
+      // Use the extracted text from the rendered DOM and clean it for TTS
+      const rawMessageText = extractedText || "No text available";
+      const messageText = cleanTextForTTS(rawMessageText);
       console.log("TTS text:", messageText); // Debug the extracted text
       
       setIsTtsLoading(true);
