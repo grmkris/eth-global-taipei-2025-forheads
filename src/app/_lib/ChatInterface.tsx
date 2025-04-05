@@ -23,6 +23,7 @@ export function ChatInterface() {
   });
   const initalMessages: Message[] = [];
   for (const m of conversation.data ?? []) {
+
     initalMessages.push({
       ...m.message,
       createdAt: m.message.createdAt
@@ -61,14 +62,15 @@ export function ChatInterface() {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll when messages or loading states change
-  useEffect(() => {
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+    useEffect(() => {
     // Scroll to bottom with a small delay to ensure rendering is complete
     const timer = setTimeout(() => {
       bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
     
     return () => clearTimeout(timer);
-  }, [chat.messages, isLoading, isStreaming, isError]);
+  }, [isLoading, isStreaming, isError]);
 
   const handleSendMessage = async (content: string) => {
     console.log("handleSendMessage", content);
