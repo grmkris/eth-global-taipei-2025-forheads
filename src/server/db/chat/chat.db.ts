@@ -72,6 +72,7 @@ export const Level1PictureSchema = z.object({
   type: z.literal(Level.enum["level1-picture"]),
   prompt: z.string(),
   image: z.string(), // base64 encoded image
+  tokenId: z.number().int().min(0).nullable(),
 });
 export type Level1PictureSchema = z.infer<typeof Level1PictureSchema>;
 

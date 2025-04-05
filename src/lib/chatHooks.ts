@@ -28,4 +28,4 @@ export const useProgression = (props: { address?: string, level: Level }) => {
     enabled: !!props.address,
   });
 };
-  
+

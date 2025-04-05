@@ -99,10 +99,15 @@ export const mintProfileNFT = async (props: {
     chain: flowMainnet,
   });
 
-  const result = await waitForTransactionReceipt(walletClient, { hash: tx });
+  const txResult = await waitForTransactionReceipt(walletClient, { hash: tx });
 
-  console.log("Minting Result:", result);
+  console.log("Minting Result:", txResult);
 
-  return result;
+  const tokenId = txResult.logs[0].data;
+
+  return {
+    tokenId,
+    transactionHash: tx,
+  };
 };
 

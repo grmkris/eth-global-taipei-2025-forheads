@@ -150,6 +150,7 @@ export const handlePicLevel = async (props: {
       type: "level1-picture",
       prompt: prompt,
       image: image,
+      tokenId: null,
     } satisfies Level1PictureSchema,
   });
   console.log(`[Agent Tool - pic] Saved level1-picture progression for user ${userId}.`);
@@ -180,46 +181,50 @@ export const handlePicLevel = async (props: {
        console.log(`[Agent Tool - pic] Deployed contract ${contractAddress} for user ${userId} and updated DB.`);
     }
 
-    if (contractAddress && user.profileNftStatus === NftMintStatus.enum.NOT_MINTED) {
-       console.log(`[Agent Tool - pic] Contract ${contractAddress} exists, profile NFT status is NOT_MINTED for user ${userId}. Minting...`);
-       
-       if (!serverEnv.SERVER_BASE_URL) {
-          console.error("[Agent Tool - pic] SERVER_BASE_URL environment variable is not set. Cannot construct token URI.");
-          throw new Error("Server configuration error prevents NFT minting.");
-       }
-       const tokenURI = `${serverEnv.SERVER_BASE_URL}/nft-metadata?address=${userAddress}`;
-       console.log(`[Agent Tool - pic] Using Token URI: ${tokenURI}`);
+    // Try minting if not minted or if a previous attempt failed
+    if (contractAddress && (user.profileNftStatus === NftMintStatus.enum.NOT_MINTED || user.profileNftStatus === NftMintStatus.enum.MINTING_FAILED)) {
+        console.log(`[Agent Tool - pic] Contract ${contractAddress} exists, profile NFT status is ${user.profileNftStatus} for user ${userId}. Minting...`);
 
-       const mintResult = await mintProfileNFT({
-          contractAddress: contractAddress,
-          to: userAddress,
-          uri: tokenURI,
-       });
+        if (!serverEnv.SERVER_BASE_URL) {
+           console.error("[Agent Tool - pic] SERVER_BASE_URL environment variable is not set. Cannot construct token URI.");
+           throw new Error("Server configuration error prevents NFT minting.");
+        }
+        const tokenURI = `${serverEnv.SERVER_BASE_URL}/nft-metadata?address=${userAddress}`;
+        console.log(`[Agent Tool - pic] Using Token URI: ${tokenURI}`);
 
-       await db.update(usersTable)
-         .set({ profileNftStatus: NftMintStatus.enum.MINTED })
-         .where(eq(usersTable.id, userId));
+        const mintResult = await mintProfileNFT({
+           contractAddress: contractAddress,
+           to: userAddress,
+           uri: tokenURI,
+        });
 
-       console.log(`[Agent Tool - pic] Minted profile NFT for user ${userId}. Tx: ${mintResult.transactionHash}. Updated DB.`);
-       return {
-        msg: "Picture generated, NFT collection deployed, and profile NFT minted!",
-       };
+        await db.update(usersTable)
+          .set({ profileNftStatus: NftMintStatus.enum.MINTED })
+          .where(eq(usersTable.id, userId));
+
+          if (!mintResult.tokenId) {
+             throw new Error("Failed to mint profile NFT");
+          }
+          
+
+        // update level progression table with tokenId
+        await db.update(levelProgressionTable)
+          .set({ data: {
+           type: "level1-picture",
+           prompt: prompt,
+           image: image,
+           tokenId: Number(mintResult.tokenId),
+         } satisfies Level1PictureSchema,
+        })
+          .where(eq(levelProgressionTable.userId, userId));
+
+        console.log(`[Agent Tool - pic] Minted profile NFT for user ${userId}. Tx: ${mintResult.transactionHash}. Updated DB.`);
+        return {
+         msg: "Picture generated, NFT collection deployed, and profile NFT minted!",
+        };
     }
 
-    if (contractAddress && user.profileNftStatus === NftMintStatus.enum.MINTED) {
-       console.log(`[Agent Tool - pic] Profile NFT status is already MINTED for user ${userId}. Skipping mint.`);
-       return {
-        msg: "Picture generated. Profile NFT was already minted previously.",
-       };
-    }
-
-    if (contractAddress && user.profileNftStatus === NftMintStatus.enum.MINTING_FAILED) {
-       console.log(`[Agent Tool - pic] Profile NFT status is MINTING_FAILED for user ${userId}. Skipping mint attempt.`);
-       return {
-        msg: "Picture generated. Previous attempt to mint profile NFT failed.",
-       };
-    }
-
+    // If status is neither NOT_MINTED, MINTING_FAILED, nor MINTED, log a warning.
     console.warn(`[Agent Tool - pic] Could not mint for user ${userId}. Contract Address: ${contractAddress}, Minted Status: ${user.profileNftStatus}`);
     return {
       msg: "Picture generated, but cannot mint profile NFT due to missing contract or unexpected status.",

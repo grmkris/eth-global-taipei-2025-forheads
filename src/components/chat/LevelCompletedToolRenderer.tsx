@@ -18,6 +18,7 @@ export const LevelCompletedToolRenderer = (props: {
     address: account.address,
     level: level,
   });
+  
 
   switch (progression?.[0]?.data.type) {
     case "level1-picture":
