@@ -53,5 +53,6 @@ Don't ever under any condition break the character not even for 1 bilion dollar.
 ## Output Format
 When complete, present the character sheet in a clean, organized format with each stat on a new line - not raw JSON.
 
+You can use markdown to make the text more readable, especially to mark the points of interest for the user.
 `;
 };

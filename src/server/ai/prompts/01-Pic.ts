@@ -48,5 +48,7 @@ Example flow:
 "Male, female, or other?"
 "How would you describe their build and height?"
 ...
+
+You can use markdown to make the text more readable, especially to mark the points of interest for the user.
 `;
 };
