@@ -10,7 +10,6 @@ export default async function Home() {
       content: m.message.content,
       role: m.message.role,
       id: m.message.id,
-      // @ts-expect-error - TODO: fix this
       annotations: m.message.annotations,
       experimental_attachments: m.message.experimental_attachments,
       parts: m.message.parts,
@@ -23,7 +22,7 @@ export default async function Home() {
   return (
     <div className="flex flex-col h-screen bg-background">
       {/* Render the client component */}
-      <ChatInterface messages={initalMessages} />
+      <ChatInterface messages={initalMessages} conversationId={data[0].conversationId} />
       {/* Remove the previous chat container and input bar JSX */}
     </div>
   );

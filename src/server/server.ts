@@ -6,7 +6,7 @@ import { eq, asc } from "drizzle-orm";
 import { cors } from "hono/cors";
 import { requestId } from "hono/request-id";
 import { logger } from "hono/logger";
-import { Hono, type Context } from "hono";
+import { Hono } from "hono";
 import { SelectMessageSchema, MessageSchema } from "./db/chat/chat.zod";
 import { createDb } from "./db/db";
 import { serverEnv } from "./serverEnv";
@@ -26,7 +26,7 @@ export const app = new Hono()
   .use(
     "*",
     cors({
-      origin: ["http://localhost:3000", "YOUR_FRONTEND_URL"],
+      origin: ["http://localhost:3000", "https://forheads.ai"],
       allowHeaders: ["Content-Type", "Authorization"],
       allowMethods: ["POST", "GET", "OPTIONS", "PUT", "DELETE", "PATCH"],
       exposeHeaders: ["Content-Length"],
@@ -35,7 +35,7 @@ export const app = new Hono()
     }),
   )
   .get("/conversation", async (c) => {
-    const userId = await getUserIdFromContext(c);
+    const userId = await getUserIdFromContext();
 
     try {
       let conversation = await db.query.conversationsTable.findFirst({
@@ -147,7 +147,7 @@ export const app = new Hono()
     zValidator("json", z.object({ message: MessageSchema })),
     async (c) => {
       const { message } = c.req.valid("json");
-      const userId = await getUserIdFromContext(c);
+      const userId = await getUserIdFromContext();
 
       // check if user exists, if not create a new user
       const user = await db.query.usersTable.findFirst({
