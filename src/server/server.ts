@@ -34,8 +34,12 @@ export const app = new Hono()
       credentials: true,
     }),
   )
-  .get("/conversation", async (c) => {
-    const userId = await getUserIdFromContext();
+  .get("/conversation", zValidator("query", z.object({ address: z.string() })), async (c) => {
+    const address = c.req.valid("query").address;
+    if (!address) {
+      return c.json({ error: "Address is required" }, 400);
+    }
+    const userId = await getUserIdFromContext(address);
 
     try {
       let conversation = await db.query.conversationsTable.findFirst({
@@ -144,10 +148,13 @@ export const app = new Hono()
   // Send a new message
   .post(
     "/conversation",
-    zValidator("json", z.object({ message: MessageSchema })),
+    zValidator("json", z.object({ message: MessageSchema, address: z.string(), id: z.string() })),
     async (c) => {
-      const { message } = c.req.valid("json");
-      const userId = await getUserIdFromContext();
+      const { message, address, id } = c.req.valid("json");
+      console.log("message", message);
+      console.log("address", address);
+      console.log("id", id);
+      const userId = await getUserIdFromContext(address);
 
       // check if user exists, if not create a new user
       const user = await db.query.usersTable.findFirst({
@@ -208,15 +215,15 @@ export const app = new Hono()
 
 export type AppType = typeof app;
 
-async function getUserIdFromContext(): Promise<UserId> {
-  const userId = typeIdGenerator("user");
-  console.log("getUserIdFromContext");
-  // check if user exists, if not create a new user
-  const user = await db.query.usersTable.findFirst({
-    where: eq(schema.usersTable.id, userId),
+async function getUserIdFromContext(address: string): Promise<UserId> {
+  // check create user with wallet address
+  const existingUser = await db.query.usersTable.findFirst({
+    where: eq(schema.usersTable.walletAddress, address),
   });
-  if (!user) {
-    await db.insert(schema.usersTable).values({ id: userId, walletAddress: userId });
-  } 
-  return userId satisfies UserId;
+  if (!existingUser) {
+    const userId = typeIdGenerator("user");
+    await db.insert(schema.usersTable).values({ id: userId, walletAddress: address });
+    return userId;
+  }
+  return existingUser.id;
 }

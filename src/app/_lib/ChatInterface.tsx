@@ -8,8 +8,10 @@ import { AIMessage } from "@/components/chat/AIMessage";
 import { UserMessage } from "@/components/chat/UserMessage";
 import { ChatInputBar } from "@/components/chat/ChatInputBar";
 import { typeIdGenerator, type ConversationId } from "@/server/db/typeid";
+import { useAccount } from "wagmi";
 
-export function ChatInterface(props: { messages: Message[], conversationId: ConversationId,  }) {
+export function ChatInterface(props: { messages: Message[], conversationId: ConversationId }) {
+  const { address } = useAccount();
   const chat = useChat({
     api: "/api/conversation",
     id: props.conversationId,
@@ -29,7 +31,7 @@ export function ChatInterface(props: { messages: Message[], conversationId: Conv
     // only send the last message to the server:
     // https://sdk.vercel.ai/docs/ai-sdk-ui/chatbot-message-persistence#sending-only-the-last-message
     experimental_prepareRequestBody({ messages, id }) {
-      return { message: messages[messages.length - 1], id };
+      return { message: messages[messages.length - 1], id, address };
     },
   });
 
