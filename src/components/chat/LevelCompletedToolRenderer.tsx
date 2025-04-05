@@ -23,16 +23,20 @@ export const LevelCompletedToolRenderer = (props: {
       : undefined,
   );
   const level = gameLevel ? ToolName2LevelMap[gameLevel] : undefined;
+  const levelIndex = 
+  props.toolInvocation?.toolInvocation?.state === "result"
+    ? props.toolInvocation?.toolInvocation?.result?.levelIndex
+    : undefined
+  console.log("qweqweqwe levelIndex", {levelIndex, level});
   const { data: progression } = useProgression({
     address: account.address,
     level: level,
-    index:
-      props.toolInvocation?.toolInvocation?.state === "result"
-        ? props.toolInvocation?.toolInvocation?.result?.levelIndex
-        : undefined,
+    index:levelIndex,
   });
   console.log("qweqweqwe", { tool: props.toolInvocation, progression });
   const state = props.toolInvocation.toolInvocation.state;
+
+  console.log("qweqweqwe state toolName: ", {toolName: props.toolInvocation.toolInvocation.toolName, state});
 
   // Handle different states of the tool invocation
   if (state === "call") {
@@ -55,7 +59,7 @@ export const LevelCompletedToolRenderer = (props: {
   if (state === "result") {
     console.log("qqqqqq", props.toolInvocation);
 
-    switch (progression?.[0]?.data.type) {
+    switch (progression?.[0]?.data.level) {
       case "pic":
         return (
           <Level1PictureRenderer
@@ -72,6 +76,7 @@ export const LevelCompletedToolRenderer = (props: {
   }
 
   // Fallback for any unexpected state
+  console.log("qweqweqwe state toolName fallback: ", {toolName: props.toolInvocation.toolInvocation.toolName, state});
   return (
     <div className="mt-2 p-4 border rounded-md bg-muted/50 shadow">
       Waiting for result...

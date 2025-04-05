@@ -84,7 +84,7 @@ export const Level = z.enum(LEVELS);
 export type Level = z.infer<typeof Level>;
 
 export const Level1PictureSchema = z.object({
-  type: z.literal(Level.enum.pic),
+  level: z.literal(Level.enum.pic),
   prompt: z.string(),
   image: z.string(), // base64 encoded image
   tokenId: z.number().int().min(0).nullable(),
@@ -204,14 +204,14 @@ export const CharacterSchema = z.object({
 export type CharacterSchema = z.infer<typeof CharacterSchema>;
 
 export const Level1SheetSchema = z.object({
-  type: z.literal(Level.enum.sheet),
+  level: z.literal(Level.enum.sheet),
   prompt: z.string(),
   characterSheet: CharacterSchema,
 });
 export type Level1SheetSchema = z.infer<typeof Level1SheetSchema>;
 
 export const LevelSchema = z.object({
-  type: z.literal(Level.enum.level),
+  level: z.literal(Level.enum.level),
   levelIndex: z.number().int().min(0),
   prompt: z.string(),
   characterSheet: CharacterSchema,

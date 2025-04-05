@@ -29,7 +29,7 @@ const systemPrompt = async (props: { db: DbType; userId: UserId }) => {
 
   const latestLevel = levelProgression[levelProgression.length - 1];
 
-  switch (latestLevel.data.type) {
+  switch (latestLevel.data.level) {
     case "pic": {
       return sheetMakerPromptGenerator();
     }

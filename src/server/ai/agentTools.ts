@@ -55,7 +55,7 @@ export const createAgentTools = (props: {
       });
       try {
         // we are here checking for the level previous to the current level, because current level has to be inserted after the tool is executed
-        switch (latestLevel?.data.type) {
+        switch (latestLevel?.data.level) {
           case undefined: {
             console.log(
               `[Agent Tool - pic] User ${userId} finishing pic level.`,
@@ -80,7 +80,7 @@ export const createAgentTools = (props: {
               levelIndex: 0,
               userId: userId,
               data: {
-                type: "sheet",
+                level: "sheet",
                 prompt: args.data,
                 characterSheet: characterSheet,
               } satisfies Level1SheetSchema,
@@ -99,7 +99,7 @@ export const createAgentTools = (props: {
               where: eq(levelProgressionTable.userId, userId),
               orderBy: desc(levelProgressionTable.createdAt),
             });
-            if (latestLevel?.data.type !== "sheet") {
+            if (latestLevel?.data.level !== "sheet") {
               throw new Error("User is not in level 1");
             }
             const result = await completeLevel({
@@ -128,7 +128,7 @@ export const createAgentTools = (props: {
               where: eq(levelProgressionTable.userId, userId),
               orderBy: desc(levelProgressionTable.createdAt),
             });
-            if (latestLevel?.data.type !== "level") {
+            if (latestLevel?.data.level !== "level") {
               throw new Error("User is not in a game level");
             }
             const nextLevelIndex = latestLevel.levelIndex + 1;
@@ -189,7 +189,7 @@ export const handlePicLevel = async (props: {
       levelIndex: 0,
       userId,
       data: {
-        type: "pic",
+        level: "pic",
         prompt,
         image,
         tokenId: null,
@@ -258,7 +258,7 @@ export const handlePicLevel = async (props: {
 
     // Create the updated data object
     const updatedData: Level1PictureSchema = {
-      type: "pic",
+      level: "pic",
       prompt,
       image,
       tokenId: tokenIdNumber,
@@ -332,8 +332,8 @@ async function completeLevel(props: {
     system: `You are a Dungeon Master who analyzes player interactions and updates character sheets.
     You've been given a chat history between a player and an AI Dungeon Master.
     Your task is to update the character sheet based on the events and interactions that occurred.
-    Consider any new skills learned, items acquired, character development, or stat changes.`,
-    prompt: `Here is the character's current sheet:
+    Consider any new skills learned, items acquired, character development, or stat changes.
+    Here is the character's current sheet
     ${JSON.stringify(characterSheet, null, 2)}
     
     Please analyze the following interactions and update the character sheet accordingly.`,
@@ -353,12 +353,13 @@ async function completeLevel(props: {
     system: `You are a Dungeon Master who distributes rewards to players after completing adventures.
     You've been given a chat history between a player and an AI Dungeon Master.
     Your task is to generate appropriate item rewards based on the adventure and the character's actions.
-    Items should be thematically appropriate, balanced for the character's level, and interesting.`,
-    prompt: `The player has completed an adventure at level ${levelIndex}. 
+    Items should be thematically appropriate, balanced for the character's level, and interesting.
+    The player has completed an adventure at level ${levelIndex}. 
     Their character is: ${JSON.stringify(characterSheet.character, null, 2)}
     
-    Please analyze the interactions and generate 1-3 items as rewards.
+    Please analyze the interactions and generate items as rewards.
     Each item should have a name and description.`,
+    
     messages: level1Messages,
     schema: z.object({
       items: z.array(
@@ -414,7 +415,7 @@ async function completeLevel(props: {
 
   // Return the complete level result with the updated character sheet, summary, and minted items
   return {
-    type: "level",
+    level: "level",
     levelIndex,
     prompt: "completed level", // Using a default prompt since we're not generating from a prompt
     characterSheet: updatedCharacterSheet,
