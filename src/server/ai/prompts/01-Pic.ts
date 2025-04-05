@@ -182,6 +182,6 @@ Effects: Slight moonlight glow on silver elements
 
 Important notes: This q&a shouild be rapid fire, don't recolect what was said ask short question one by one and expect short answers.
 
-When you have you getered all the information needed call tool finishLevel with apropriate params.
+When you have you getered all the information needed call tool for making a picute finishLevel with apropriate params, witch is a prompt that will be passed to the img generator.
 `;
 };
