@@ -17,12 +17,12 @@ const messageVariants = cva("flex items-start gap-3", {
 });
 
 const bubbleVariants = cva(
-  "relative rounded-lg px-4 py-2 max-w-[75%] text-sm shadow-sm border", // Added border here as per theme
+  "relative rounded-lg px-3 py-2 text-sm shadow-sm border",
   {
     variants: {
       variant: {
-        user: "bg-primary text-primary-foreground border-primary-border", // Use primary colors
-        ai: "bg-card text-card-foreground border-border", // Use card colors
+        user: "bg-primary text-primary-foreground border-primary-border min-w-[120px]",
+        ai: "bg-card text-card-foreground border-border",
       },
     },
     defaultVariants: {
@@ -53,7 +53,6 @@ function MessageBubble({
   const avatar = (
     <Avatar className="size-8 border-2 border-border">
       {" "}
-      {/* Consistent avatar size and border */}
       <AvatarImage src={avatarSrc} alt="Sender avatar" />
       <AvatarFallback>
         {avatarFallback?.slice(0, 2).toUpperCase() || "???"}
@@ -64,8 +63,15 @@ function MessageBubble({
   return (
     <div className={cn(messageVariants({ variant }), className)} {...props}>
       {variant === "ai" && avatar}
-      <div className="flex flex-col gap-1">
-        <div className={bubbleClassName}>{message}</div>
+      <div
+        className={cn(
+          "flex flex-col gap-1",
+          variant === "user" ? "items-end max-w-[75%]" : "max-w-[75%]",
+        )}
+      >
+        <div className={bubbleClassName}>
+          <div>{message}</div>
+        </div>
         {timestamp && (
           <p
             className={cn(

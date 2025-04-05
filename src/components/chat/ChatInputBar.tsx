@@ -15,6 +15,7 @@ interface ChatInputBarProps extends React.HTMLAttributes<HTMLFormElement> {
   inputProps?: React.ComponentProps<typeof Textarea>;
   buttonProps?: React.ComponentProps<typeof Button>;
   onSendMessage: (message: string) => void; // Callback when message is sent
+  disabled?: boolean; // Add disabled prop
 }
 
 function ChatInputBar({
@@ -22,6 +23,7 @@ function ChatInputBar({
   inputProps,
   buttonProps,
   onSendMessage,
+  disabled = false, // Default to false
   ...props
 }: ChatInputBarProps) {
   const [message, setMessage] = React.useState("");
@@ -69,6 +71,7 @@ function ChatInputBar({
         onKeyDown={handleKeyDown}
         rows={1} // Start with 1 row, auto-expands due to field-sizing-content
         className="min-h-10 max-h-48 flex-1 resize-none rounded-md" // Added rounded-md
+        disabled={disabled}
         {...inputProps}
       />
       <TooltipProvider>
@@ -78,7 +81,7 @@ function ChatInputBar({
               type="submit"
               size="icon"
               variant="ghost" // Added variant="ghost"
-              disabled={!message.trim()} // Disable if no message
+              disabled={!message.trim() || disabled} // Disable if no message or if component is disabled
               aria-label="Send message"
               className="rounded-md" // Added rounded-md
               {...buttonProps}

@@ -3,5 +3,3 @@ export const contractAddresses = {
   sepolia: "0x0000000000000000000000000000000000000000",
   flowMainnet: "0xbf7c8b6ef50b35de2e2e071b205a62b40f578a7e",
 } as const;
-
-

@@ -208,5 +208,4 @@ Important notes: This Q&A should be rapid fire, don't recollect what was said. A
   When character sheet is complete, output it in a nice format. Don't just output the JSON you created but make it look nice and organized, with every stat on a new line so the user can see everything clearly.
   Make this process as fast as possible. Ask short questions and dont't overthink it, you only need the most important informations when you have all the needed informations before you go to finish the lvl ask the user if he wants to get more specific or no, this will provide the user with fast way to finish the character creation or he can get detailed if he is willing to have a long conversation.
   `;
-
 };

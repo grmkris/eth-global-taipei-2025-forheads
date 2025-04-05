@@ -28,7 +28,6 @@ export const getProgression = async (address: string, level: Level) => {
   return data;
 };
 
-
 export const getUserInfo = async (address: string) => {
   const userInfo = await apiClient["user-info"].$get({
     query: { address },

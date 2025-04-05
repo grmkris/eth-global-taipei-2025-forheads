@@ -8,7 +8,6 @@ export const AGENT_LEVELS = ["pic", "sheet", "level1", "level2"] as const;
 export const AgentLevel = z.enum(AGENT_LEVELS);
 export type AgentLevel = z.infer<typeof AgentLevel>;
 
-
 /**
  * /**
 A JSON value can be a string, number, boolean, object, array, or null.

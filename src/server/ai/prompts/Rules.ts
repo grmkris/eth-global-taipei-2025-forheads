@@ -1,5 +1,5 @@
 export const combatRulesPromptGenerator = () => {
-    return `
+  return `
     # D&D Combat Guide for New Dungeon Masters
 
 Roll Rule: Roll dice and add modifiers. Always adjust results based on roleplay quality:
@@ -160,4 +160,3 @@ Remember that as DM, you have the final say on rules interpretations. The goal i
 Combat should be dramatic and exciting—don't be afraid to add environmental effects, unexpected events, or dynamic elements to make encounters memorable!
   `;
 };
-  

@@ -138,6 +138,4 @@ Ensure the level accommodates these play styles:
 ## OUTPUT FORMAT
 Format the complete level structure as a Markdown document with clear headings, bullet points, and sections for each component listed above.
   `;
-
 };
-

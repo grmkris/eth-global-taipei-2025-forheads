@@ -1,4 +1,10 @@
-import { createWalletClient, getContract, http, decodeEventLog, parseAbiItem } from "viem";
+import {
+  createWalletClient,
+  getContract,
+  http,
+  decodeEventLog,
+  parseAbiItem,
+} from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { serverEnv } from "../serverEnv";
 import { contractAddresses } from "./contract_addresses";
@@ -28,16 +34,20 @@ export const deployProfileNFTCollection = async (props: {
 
   const tx = await contract.write.deployNFTContract([name, symbol], {
     account: walletClient.account,
-    chain: flowMainnet
+    chain: flowMainnet,
   });
   const receipt = await waitForTransactionReceipt(walletClient, { hash: tx });
 
   console.log("Deployment Receipt:", receipt);
 
   // Find and decode the NFTContractDeployed event log
-  const deployEventSignature = parseAbiItem('event NFTContractDeployed(address indexed contractAddress, address indexed deployer, string name, string symbol)');
+  const deployEventSignature = parseAbiItem(
+    "event NFTContractDeployed(address indexed contractAddress, address indexed deployer, string name, string symbol)",
+  );
   // Pre-calculate the signature hash (topic0)
-  const deployEventTopic = encodeEventTopics({ abi: [deployEventSignature] })[0];
+  const deployEventTopic = encodeEventTopics({
+    abi: [deployEventSignature],
+  })[0];
 
   let deployedContractAddress: `0x${string}` | null = null;
 
@@ -53,22 +63,37 @@ export const deployProfileNFTCollection = async (props: {
 
         // Since we matched the topic, we can be more confident it's our event
         // Although checking eventName is still good practice if the ABI had multiple events
-        if (decodedLog.eventName === 'NFTContractDeployed') {
-          deployedContractAddress = (decodedLog.args as { contractAddress: `0x${string}` }).contractAddress;
-          console.log("Deployed Contract Address from event:", deployedContractAddress);
+        if (decodedLog.eventName === "NFTContractDeployed") {
+          deployedContractAddress = (
+            decodedLog.args as { contractAddress: `0x${string}` }
+          ).contractAddress;
+          console.log(
+            "Deployed Contract Address from event:",
+            deployedContractAddress,
+          );
           break; // Exit loop once found
         }
       } catch (e: unknown) {
         // Handle potential decoding errors even if topic matches (e.g., corrupted data)
-        console.error("Error decoding NFTContractDeployed event log:", log, "Error:", e instanceof Error ? e.message : e);
+        console.error(
+          "Error decoding NFTContractDeployed event log:",
+          log,
+          "Error:",
+          e instanceof Error ? e.message : e,
+        );
       }
     }
     // No 'else' or 'catch' needed here for non-matching logs, silencing the warning
   }
 
   if (!deployedContractAddress) {
-    console.error("Could not find NFTContractDeployed event in transaction logs.", receipt);
-    throw new Error("Failed to extract deployed contract address from transaction receipt.");
+    console.error(
+      "Could not find NFTContractDeployed event in transaction logs.",
+      receipt,
+    );
+    throw new Error(
+      "Failed to extract deployed contract address from transaction receipt.",
+    );
   }
 
   return deployedContractAddress;
@@ -103,11 +128,12 @@ export const mintProfileNFT = async (props: {
 
   console.log("Minting Result:", txResult);
 
-  const tokenId = txResult.logs[0].data;
+  const tokenId = txResult.logs[1].data;
+  const tokenIdNumber = BigInt(tokenId);
+  console.log("Token ID:", tokenIdNumber);
 
   return {
-    tokenId,
+    tokenId: Number(tokenIdNumber),
     transactionHash: tx,
   };
 };
-

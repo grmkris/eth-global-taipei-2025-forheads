@@ -12,9 +12,9 @@ import { z } from "zod";
 
 // Define the Zod enum for NFT minting status
 export const NFT_MINT_STATUSES = [
-  'NOT_MINTED', 
-  'MINTED', 
-  'MINTING_FAILED'
+  "NOT_MINTED",
+  "MINTED",
+  "MINTING_FAILED",
 ] as const;
 export const NftMintStatus = z.enum(NFT_MINT_STATUSES);
 export type NftMintStatus = z.infer<typeof NftMintStatus>;
@@ -65,7 +65,12 @@ export const messagesTable = pgTable("messages", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const LEVELS = ["level1-picture", "level1-sheet", "level1", "level2"] as const;
+export const LEVELS = [
+  "level1-picture",
+  "level1-sheet",
+  "level1",
+  "level2",
+] as const;
 export const Level = z.enum(LEVELS);
 export type Level = z.infer<typeof Level>;
 export const Level1PictureSchema = z.object({
@@ -229,10 +234,9 @@ export const levelProgressionTable = pgTable("level_progression", {
 });
 
 export const ToolName2LevelMap = {
-  "pic": "level1-picture",
-  "sheet": "level1-sheet",
-  "level1": "level1",
-  "level2": "level2",
+  pic: "level1-picture",
+  sheet: "level1-sheet",
+  level1: "level1",
+  level2: "level2",
 } as const;
 export type ToolName2LevelMap = typeof ToolName2LevelMap;
-

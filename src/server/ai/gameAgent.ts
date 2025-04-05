@@ -8,9 +8,7 @@ import { typeIdGenerator, type UserId } from "@/server/db/typeid";
 import type { AiClient } from "./aiClient";
 import type { ChatHistoryService } from "./chatHistoryService";
 import { picPromptGenerator } from "./prompts/01-Pic";
-import {
-  levelProgressionTable,
-} from "../db/chat/chat.db";
+import { levelProgressionTable } from "../db/chat/chat.db";
 import type { db as DbType } from "../db/db";
 import { sheetMakerPromptGenerator } from "./prompts/02-SheetMaker";
 import { eq } from "drizzle-orm";
@@ -32,7 +30,7 @@ const systemPrompt = async (props: { db: DbType; userId: UserId }) => {
   const latestLevel = levelProgression[levelProgression.length - 1];
 
   switch (latestLevel.data.type) {
-    case "level1-picture": {  
+    case "level1-picture": {
       return sheetMakerPromptGenerator();
     }
     case "level1-sheet": {
@@ -51,7 +49,7 @@ const systemPrompt = async (props: { db: DbType; userId: UserId }) => {
       });
     }
   }
-}
+};
 
 export const createGameAgent = (props: {
   deps: {
@@ -136,4 +134,3 @@ export const createGameAgent = (props: {
 };
 
 export type GameAgent = ReturnType<typeof createGameAgent>;
-

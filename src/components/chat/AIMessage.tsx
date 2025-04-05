@@ -6,7 +6,14 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { LevelCompletedToolRenderer } from "./LevelCompletedToolRenderer";
 
 // Component for rendering a single, inline, expandable tool invocation
-function InlineToolInvocation({ part }: { part: Extract<NonNullable<Message["parts"]>[number], { type: "tool-invocation" }> }) {
+function InlineToolInvocation({
+  part,
+}: {
+  part: Extract<
+    NonNullable<Message["parts"]>[number],
+    { type: "tool-invocation" }
+  >;
+}) {
   const [isExpanded, setIsExpanded] = useState(false);
   const toggleExpand = () => setIsExpanded(!isExpanded);
 
@@ -20,7 +27,11 @@ function InlineToolInvocation({ part }: { part: Extract<NonNullable<Message["par
         onClick={toggleExpand}
         className="flex items-center justify-start p-1 h-auto text-left w-full bg-muted/30 hover:bg-muted/60 rounded"
       >
-        {isExpanded ? <ChevronUp size={14} className="mr-1"/> : <ChevronDown size={14} className="mr-1"/>}
+        {isExpanded ? (
+          <ChevronUp size={14} className="mr-1" />
+        ) : (
+          <ChevronDown size={14} className="mr-1" />
+        )}
         {isLevelCompletedTool ? "Level Completed" : "Tool Call"}
       </Button>
       {isExpanded && (
@@ -33,14 +44,15 @@ function InlineToolInvocation({ part }: { part: Extract<NonNullable<Message["par
               </pre>
             </>
           )}
-          {part.toolInvocation.state === 'result' && part.toolInvocation.result && (
-            <>
-              <p className="mt-1 font-medium">Result:</p>
-              <pre className="whitespace-pre-wrap break-all bg-muted/20 p-1 rounded text-[0.7rem]">
-                {JSON.stringify(part.toolInvocation.result, null, 2)}
-              </pre>
-            </>
-          )}
+          {part.toolInvocation.state === "result" &&
+            part.toolInvocation.result && (
+              <>
+                <p className="mt-1 font-medium">Result:</p>
+                <pre className="whitespace-pre-wrap break-all bg-muted/20 p-1 rounded text-[0.7rem]">
+                  {JSON.stringify(part.toolInvocation.result, null, 2)}
+                </pre>
+              </>
+            )}
         </div>
       )}
     </div>
@@ -57,36 +69,61 @@ type AIMessageProps = Omit<
 function AIMessage({ fullMessage, ...props }: AIMessageProps) {
   console.log("AIMessage", fullMessage);
   // Separate text and tool parts
-  const textParts = fullMessage.parts?.filter((part) => part?.type === "text") || [];
-  const toolInvocationParts = fullMessage.parts?.filter(
-      (part): part is Extract<NonNullable<Message["parts"]>[number], { type: "tool-invocation" }> =>
-        part?.type === "tool-invocation",
+  const textParts =
+    fullMessage.parts?.filter((part) => part?.type === "text") || [];
+  const toolInvocationParts =
+    fullMessage.parts?.filter(
+      (
+        part,
+      ): part is Extract<
+        NonNullable<Message["parts"]>[number],
+        { type: "tool-invocation" }
+      > => part?.type === "tool-invocation",
     ) || [];
-
 
   console.log("toolInvocationParts", toolInvocationParts);
   // Render message content with text first, then tool calls
   const messageContent = (
     <div>
-      {/* Render Text Parts */} 
+      {/* Render Text Parts */}
       {textParts.map((part, index) => {
-        if (!part || part.type !== 'text') return null;
-        return part.text.split('\n').map((line, lineIndex) => (
-          <p key={`text-${index}-line-${lineIndex.toString()}`} className={line ? '' : 'h-4'}>{line || <>&nbsp;</>}</p>
-        ));
+        if (!part || part.type !== "text") return null;
+        // Simplified text rendering with preserved whitespace
+        // Using a more unique key combining message ID and index
+        return (
+          <div
+            key={`${fullMessage.id || "msg"}-text-${index}`}
+            className="whitespace-pre-wrap"
+          >
+            {part.text}
+          </div>
+        );
       })}
-      {/* Render Tool Invocation Parts */} 
+
+      {/* Render Tool Invocation Parts */}
       {toolInvocationParts.map((part, index) => {
-        if (part.toolInvocation.toolName === "finishLevel") {
+        if (part.toolInvocation.toolName === "finishLevelTool") {
           // Render LevelCompletedToolRenderer for finishLevel tool calls
-          return <LevelCompletedToolRenderer key={`${fullMessage.id}-tool-${index}`} toolInvocation={part} />;
+          return (
+            <LevelCompletedToolRenderer
+              key={`${fullMessage.id}-tool-${index}`}
+              toolInvocation={part}
+            />
+          );
         }
-          // Render InlineToolInvocation for other tool calls
-        return <InlineToolInvocation key={`${fullMessage.id}-tool-${index}`} part={part} />;
+        // Render InlineToolInvocation for other tool calls
+        return (
+          <InlineToolInvocation
+            key={`${fullMessage.id}-tool-${index}`}
+            part={part}
+          />
+        );
       })}
 
       {/* Fallback if parts is empty/missing, but content exists */}
-      {!fullMessage.parts?.length && fullMessage.content && <p>{fullMessage.content}</p>}
+      {!fullMessage.parts?.length && fullMessage.content && (
+        <p>{fullMessage.content}</p>
+      )}
     </div>
   );
 

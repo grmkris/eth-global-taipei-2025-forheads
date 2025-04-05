@@ -2,6 +2,7 @@
 
 import type React from "react";
 import { useChat, type Message } from "@ai-sdk/react";
+import { cn } from "@/lib/utils";
 
 import { ChatContainer } from "@/components/chat/ChatContainer";
 import { AIMessage } from "@/components/chat/AIMessage";
@@ -11,6 +12,8 @@ import { typeIdGenerator } from "@/server/db/typeid";
 import { useAccount } from "wagmi";
 import { useConversation } from "@/lib/chatHooks";
 import ConnectButton from "@/components/web3/connect-button";
+import { Button } from "@/components/ui/button";
+import { RefreshCwIcon } from "lucide-react";
 
 export function ChatInterface() {
   const { address } = useAccount();
@@ -48,6 +51,11 @@ export function ChatInterface() {
     },
   });
 
+  // Add loading state indicators based on chat.status
+  const isLoading = chat.status === "submitted";
+  const isStreaming = chat.status === "streaming";
+  const isError = chat.status === "error";
+
   const handleSendMessage = async (content: string) => {
     console.log("handleSendMessage", content);
     if (!content.trim()) return;
@@ -59,9 +67,7 @@ export function ChatInterface() {
 
   return (
     <div className="flex flex-col h-full">
-      {" "}
-      {/* Adjust height if needed, assuming parent provides height */}
-      {/* Use ChatContainer for the main chat display */}
+      {/* Chat container */}
       <ChatContainer className="flex-1 overflow-y-auto">
         {chat.messages.length === 0 ? (
           <div className="flex h-full items-center justify-center">
@@ -99,11 +105,89 @@ export function ChatInterface() {
                   );
               }
             })}
+            {isLoading && (
+              <div className="flex items-center gap-2 p-4 rounded-lg bg-muted/50">
+                <div className="h-4 w-4 rounded-full bg-primary animate-pulse" />
+                <p className="text-sm text-muted-foreground">Thinking...</p>
+              </div>
+            )}
+            {isStreaming && (
+              <div className="flex items-center gap-2 p-4 rounded-lg bg-muted/50">
+                <div className="flex gap-1">
+                  <div className="h-2 w-2 rounded-full bg-primary animate-bounce delay-75" />
+                  <div className="h-2 w-2 rounded-full bg-primary animate-bounce delay-150" />
+                  <div className="h-2 w-2 rounded-full bg-primary animate-bounce delay-300" />
+                </div>
+                <p className="text-sm text-muted-foreground">Responding...</p>
+              </div>
+            )}
+            {isError && (
+              <div className="p-4 rounded-lg bg-destructive/10 text-destructive flex flex-col gap-2">
+                <p>
+                  There was an error generating the response. Please try again.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="self-start"
+                  onClick={() => chat.reload()}
+                >
+                  <RefreshCwIcon className="size-4 mr-2" />
+                  Retry
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </ChatContainer>
-      {/* Use your ChatInputBar component */}
-      <ChatInputBar onSendMessage={handleSendMessage} />
+      {/* Use your ChatInputBar component with loading state */}
+      <ChatInputBar
+        onSendMessage={handleSendMessage}
+        disabled={isLoading || isStreaming}
+        buttonProps={{
+          className: cn(
+            "rounded-md",
+            (isLoading || isStreaming) && "opacity-50",
+          ),
+        }}
+        inputProps={{
+          placeholder: isLoading
+            ? "Waiting for response..."
+            : isStreaming
+            ? "AI is responding..."
+            : "Type your message...",
+        }}
+      />
+
+      {/* Status indicator */}
+      <div className="px-4 py-2 flex items-center justify-between text-xs text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <div
+            className={cn(
+              "h-2 w-2 rounded-full",
+              isLoading && "bg-yellow-500",
+              isStreaming && "bg-blue-500 animate-pulse",
+              isError && "bg-red-500",
+              !isLoading && !isStreaming && !isError && "bg-green-500",
+            )}
+          />
+          <span>
+            {isLoading
+              ? "Processing..."
+              : isStreaming
+              ? "Streaming response"
+              : isError
+              ? "Error"
+              : "Ready"}
+          </span>
+        </div>
+        <span>
+          {chat.messages.length > 0
+            ? `${chat.messages.length} messages`
+            : "No messages"}
+        </span>
+      </div>
+
       <ConnectButton />
     </div>
   );
