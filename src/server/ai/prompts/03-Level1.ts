@@ -1,4 +1,5 @@
 import type { CharacterSchema } from "@/server/db/schema";
+import { combatRulesPromptGenerator } from "./Rules";
 
 export const level1PromptGenerator = (props: {
   characterSheet: CharacterSchema;
@@ -7,6 +8,9 @@ export const level1PromptGenerator = (props: {
   return `
   The player has the following character sheet:
   ${JSON.stringify(characterSheet)}
+
+  This are the roles that you should follow as DM:
+  ${combatRulesPromptGenerator()}
 
   # THE WOODCUTTER'S CABIN
 
