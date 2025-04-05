@@ -1,4 +1,5 @@
 import { ChatInterface } from "@/app/_lib/ChatInterface";
+import ConnectButton from "@/components/web3/connect-button";
 import { getConversation } from "@/lib/chatLib";
 import type { Message } from "ai";
 
@@ -19,6 +20,7 @@ export default async function Home() {
       {/* Render the client component */}
       <ChatInterface messages={initalMessages} conversationId={data[0].conversationId} />
       {/* Remove the previous chat container and input bar JSX */}
+      <ConnectButton /> 
     </div>
   );
 }
