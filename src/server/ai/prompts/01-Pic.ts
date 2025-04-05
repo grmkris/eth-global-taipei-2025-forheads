@@ -1,4 +1,6 @@
-You will be gaterring information about the player backtory and his charecter look.
+export const picPromptGenerator = () => {
+  return `
+  You will be gaterring information about the player backtory and his charecter look.
 
 Must have information: Name and race.
 
@@ -180,4 +182,6 @@ Effects: Slight moonlight glow on silver elements
 
 Important notes: This q&a shouild be rapid fire, don't recolect what was said ask short question one by one and expect short answers.
 
-When you have you getered all the information needed to make a pefect promt for the picure just say "PROMPT: ****" **** = the prompt
+When you have you getered all the information needed call tool finishLevel with apropriate params.
+`;
+};

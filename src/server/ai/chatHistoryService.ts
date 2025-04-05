@@ -1,7 +1,5 @@
 import type { db } from "@/server/db/db";
-import type {
-  Message,
-} from "ai";
+import type { Message } from "ai";
 import { and, eq, sql } from "drizzle-orm";
 import {
   type ConversationId,
@@ -13,15 +11,15 @@ import { conversationsTable, messagesTable } from "../db/schema";
 
 // Simplified options, only requiring db and conversationId
 export interface SimpleChatHistoryServiceOptions {
-	db: db;
-	conversationId: ConversationId;
-	userId: UserId;
+  db: db;
+  conversationId: ConversationId;
+  userId: UserId;
 }
 
 export type ChatHistoryService = {
-	addUserMessage: (message: Message) => Promise<Message>;
-	addAgentMessages: (messages: Message[]) => Promise<Message[]>;
-	getConversationMessages: () => Promise<Message[]>;
+  addUserMessage: (message: Message) => Promise<Message>;
+  addAgentMessages: (messages: Message[]) => Promise<Message[]>;
+  getConversationMessages: () => Promise<Message[]>;
 };
 
 // Adding implementation for ChatHistoryService
@@ -86,9 +84,7 @@ export const createDrizzleChatHistoryService = (
 
     getConversationMessages: async (): Promise<Message[]> => {
       const conversationMessages = await db.query.conversationsTable.findFirst({
-        where: and(
-          eq(conversationsTable.id, conversationId),
-        ),
+        where: and(eq(conversationsTable.id, conversationId)),
         with: {
           messages: true,
         },

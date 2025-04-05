@@ -175,7 +175,10 @@ export const app = new Hono()
       const address = data.address;
 
       // Extract the last message, adapting to the input format
-      const userMessage = "messages" in data ? data.messages[data.messages.length - 1] : data.message;
+      const userMessage =
+        "messages" in data
+          ? data.messages[data.messages.length - 1]
+          : data.message;
       if (!userMessage) {
         return c.json({ error: "No message found in payload" }, 400);
       }
@@ -229,18 +232,18 @@ export const app = new Hono()
               chatHistoryService,
             });
             dataAgentStream.mergeIntoDataStream(dataStreamWriter);
-      },
-      onError: (error) => {
-        console.error("Streaming error", error);
-        return error instanceof Error ? error.message : String(error);
-      },
-    });
+          },
+          onError: (error) => {
+            console.error("Streaming error", error);
+            return error instanceof Error ? error.message : String(error);
+          },
+        });
 
-    // Mark the response as a v1 data stream
-    c.header("X-Vercel-AI-Data-Stream", "v1");
-    c.header("Content-Type", "text/plain; charset=utf-8");
+        // Mark the response as a v1 data stream
+        c.header("X-Vercel-AI-Data-Stream", "v1");
+        c.header("Content-Type", "text/plain; charset=utf-8");
 
-    return stream(c, (stream) => stream.pipe(dataStream));
+        return stream(c, (stream) => stream.pipe(dataStream));
       } catch (error) {
         console.error("Error processing message:", error);
         return c.json({ error: "Failed to process message" }, 500);

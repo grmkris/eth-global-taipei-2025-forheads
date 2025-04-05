@@ -1,5 +1,5 @@
 {
-  "name": "cat-contracts",
+  "name": "contracts",
   "description": "Foundry-based template for developing Solidity smart contracts",
   "version": "1.0.0",
   "dependencies": {
@@ -32,7 +32,10 @@
     "format": "pnpm biome format --write src test script lib",
     "test": "forge test",
     "test:coverage": "forge coverage",
-    "test:coverage:report": "forge coverage --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage"
+    "test:coverage:report": "forge coverage --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage",
+    "deploy:local": "forge script script/Deploy.s.sol:Deploy --fork-url http://localhost:8545 -vvvv",
+    "deploy:sepolia": "source .env && forge script script/Deploy.s.sol:Deploy --rpc-url $SEPOLIA_RPC_URL --private-key $PRIVATE_KEY --broadcast --verify -vvvv",
+    "deployer:address": "source .env && cast wallet address --private-key $PRIVATE_KEY"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

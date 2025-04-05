@@ -43,8 +43,6 @@ export function ChatInterface() {
       console.log("useChat onResponse", response);
     },
     sendExtraMessageFields: true,
-    // only send the last message to the server:
-    // https://sdk.vercel.ai/docs/ai-sdk-ui/chatbot-message-persistence#sending-only-the-last-message
     experimental_prepareRequestBody({ messages, id }) {
       return { message: messages[messages.length - 1], id, address };
     },
@@ -89,12 +87,16 @@ export function ChatInterface() {
                   return (
                     <AIMessage
                       key={message.id}
-                      message={message.content}
+                      fullMessage={message}
                       avatarFallback="AI" // Add default fallback
                     />
                   );
                 default:
-                  return null;
+                  return (
+                    <div key={message.id}>
+                      <pre>{JSON.stringify(message, null, 2)}</pre>
+                    </div>
+                  );
               }
             })}
           </div>
