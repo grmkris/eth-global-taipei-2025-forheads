@@ -121,7 +121,17 @@ export const createAgentTools = (props: {
               userId: userId,
               data: result,
             });
-            return result;
+            return {
+              level: "level",
+              levelIndex: 0,
+              message: "Level 1 generated and user moved to next level",
+              characterSheet: result.characterSheet,
+              levelSummary: result.levelSummary,
+              items: result.items.map((item) => ({ // we return only the name and description of the items to not kill the context of the AI
+                name: item.name,
+                description: item.description,
+              })),
+            };
           }
           case "level": {
             const latestLevel = await db.query.levelProgressionTable.findFirst({
@@ -148,7 +158,15 @@ export const createAgentTools = (props: {
               data: result,
             });
             return {
-              msg: `Level ${nextLevelIndex} generated and user moved to next level`,
+              level: "level",
+              levelIndex: nextLevelIndex,
+              message: `Level ${nextLevelIndex} generated and user moved to next level`,
+              characterSheet: result.characterSheet,
+              levelSummary: result.levelSummary,
+              items: result.items.map((item) => ({
+                name: item.name,
+                description: item.description,
+              })),
             };
           }
         }
@@ -311,6 +329,142 @@ export const handlePicLevel = async (props: {
   }
 };
 
+export const handleItemNftMint = async (props: {
+  userId: UserId;
+  db: db;
+  itemName: string;
+  itemDescription: string;
+  aiClient: AiClient;
+}) => {
+  const { userId, db, itemName, itemDescription, aiClient } = props;
+  console.log(
+    `[Agent Tool - mintItem] Minting item NFT for user ${userId}: ${itemName}`,
+  );
+
+  try {
+    // 1. Get user data
+    const user = await db.query.usersTable.findFirst({
+      where: eq(usersTable.id, userId),
+    });
+
+    if (!user?.walletAddress || !isAddress(user.walletAddress)) {
+      throw new Error("User data incomplete for NFT operations.");
+    }
+
+    const userAddress = user.walletAddress as `0x${string}`;
+    let itemContractAddress =
+      (user.itemNftContractAddress as `0x${string}`) || null;
+
+    // 2. Deploy item collection if needed
+    if (!itemContractAddress) {
+      itemContractAddress = await deployItemNFTCollection({
+        address: userAddress,
+      });
+
+      // Update user record with new item contract address
+      await db
+        .update(usersTable)
+        .set({
+          itemNftContractAddress: itemContractAddress,
+          itemNftStatus: NftMintStatus.enum.NOT_MINTED,
+        })
+        .where(eq(usersTable.id, userId));
+
+      console.log(
+        `Deployed new item collection at ${itemContractAddress} for user ${userId}`,
+      );
+    }
+
+    if (!serverEnv.SERVER_BASE_URL) {
+      throw new Error("Server configuration error prevents NFT minting.");
+    }
+
+    // Generate an image for the item if aiClient is provided
+    const itemImage = await generateItemImage({
+      aiClient,
+      itemName,
+      itemDescription,
+    });
+    
+
+    // 3. Create item record in database
+    const itemId = typeIdGenerator("item");
+    await db.insert(itemsTable).values({
+      id: itemId,
+      userId: userId,
+      name: itemName,
+      description: itemDescription,
+      image: itemImage,
+      contractAddress: itemContractAddress,
+      mintStatus: NftMintStatus.enum.MINTING_IN_PROGRESS,
+    });
+
+    // 4. Mint the item NFT
+    // For now, we're using the server URL to fetch metadata, but could be IPFS in future
+    const tokenURI = `${serverEnv.SERVER_BASE_URL}/item-metadata?address=${userAddress}&itemId=${itemId}`;
+
+    const mintResult = await mintItemNft({
+      contractAddress: itemContractAddress,
+      to: userAddress,
+      uri: tokenURI,
+    });
+
+    if (mintResult.tokenId === null) {
+      throw new Error("Failed to mint item NFT");
+    }
+
+    console.log(
+      `Successfully minted item NFT with ID ${mintResult.tokenId} to ${userAddress}`,
+    );
+
+    // Update item record with token ID and status
+    await db
+      .update(itemsTable)
+      .set({
+        tokenId: String(mintResult.tokenId),
+        transactionHash: mintResult.transactionHash,
+        mintStatus: NftMintStatus.enum.MINTED,
+        updatedAt: new Date(),
+      })
+      .where(eq(itemsTable.id, itemId));
+
+    // Update user status
+    await db
+      .update(usersTable)
+      .set({ itemNftStatus: NftMintStatus.enum.MINTED })
+      .where(eq(usersTable.id, userId));
+
+    return {
+      msg: `Item "${itemName}" successfully minted as NFT!`,
+      tokenId: mintResult.tokenId,
+      transactionHash: mintResult.transactionHash,
+      itemId: itemId,
+      image: itemImage,
+      contractAddress: itemContractAddress,
+    };
+  } catch (error) {
+    console.error(`[Agent Tool - mintItem] Error for user ${userId}:`, error);
+
+    // Update user status if possible
+    try {
+      await db
+        .update(usersTable)
+        .set({ itemNftStatus: NftMintStatus.enum.MINTING_FAILED })
+        .where(eq(usersTable.id, userId));
+    } catch (dbError) {
+      console.error(
+        "[Agent Tool - mintItem] Failed to update user status:",
+        dbError,
+      );
+    }
+
+    return {
+      msg: "There was an issue with item NFT creation.",
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+};
+
 async function completeLevel(props: {
   level: AgentLevel;
   levelIndex: number;
@@ -397,9 +551,9 @@ async function completeLevel(props: {
           mintedItems.push({
             name: item.name,
             description: item.description,
-            image: "", // Will be populated by handleItemNftMint
+            image: mintResult.image || "",
             tokenId: Number(mintResult.tokenId),
-            contractAddress: "",
+            contractAddress: mintResult.contractAddress || "",
             mintStatus: "MINTED",
             transactionHash: mintResult.transactionHash || null,
           });
@@ -423,146 +577,3 @@ async function completeLevel(props: {
     items: mintedItems,
   };
 }
-
-export const handleItemNftMint = async (props: {
-  userId: UserId;
-  db: db;
-  itemName: string;
-  itemDescription: string;
-  aiClient?: AiClient;
-}) => {
-  const { userId, db, itemName, itemDescription, aiClient } = props;
-  console.log(
-    `[Agent Tool - mintItem] Minting item NFT for user ${userId}: ${itemName}`,
-  );
-
-  try {
-    // 1. Get user data
-    const user = await db.query.usersTable.findFirst({
-      where: eq(usersTable.id, userId),
-    });
-
-    if (!user?.walletAddress || !isAddress(user.walletAddress)) {
-      throw new Error("User data incomplete for NFT operations.");
-    }
-
-    const userAddress = user.walletAddress as `0x${string}`;
-    let itemContractAddress =
-      (user.itemNftContractAddress as `0x${string}`) || null;
-
-    // 2. Deploy item collection if needed
-    if (!itemContractAddress) {
-      itemContractAddress = await deployItemNFTCollection({
-        address: userAddress,
-      });
-
-      // Update user record with new item contract address
-      await db
-        .update(usersTable)
-        .set({
-          itemNftContractAddress: itemContractAddress,
-          itemNftStatus: NftMintStatus.enum.NOT_MINTED,
-        })
-        .where(eq(usersTable.id, userId));
-
-      console.log(
-        `Deployed new item collection at ${itemContractAddress} for user ${userId}`,
-      );
-    }
-
-    if (!serverEnv.SERVER_BASE_URL) {
-      throw new Error("Server configuration error prevents NFT minting.");
-    }
-
-    // Generate an image for the item if aiClient is provided
-    let itemImage = null;
-    if (aiClient) {
-      try {
-        console.log(`Generating image for item: ${itemName}`);
-        itemImage = await generateItemImage({
-          aiClient,
-          itemName,
-          itemDescription,
-        });
-        console.log("Item image generated successfully");
-      } catch (imageError) {
-        console.error("Error generating item image:", imageError);
-        // Continue without an image if generation fails
-      }
-    }
-
-    // 3. Create item record in database
-    const itemId = typeIdGenerator("item");
-    await db.insert(itemsTable).values({
-      id: itemId,
-      userId: userId,
-      name: itemName,
-      description: itemDescription,
-      image: itemImage,
-      contractAddress: itemContractAddress,
-      mintStatus: NftMintStatus.enum.MINTING_IN_PROGRESS,
-    });
-
-    // 4. Mint the item NFT
-    // For now, we're using the server URL to fetch metadata, but could be IPFS in future
-    const tokenURI = `${serverEnv.SERVER_BASE_URL}/item-metadata?address=${userAddress}&itemId=${itemId}`;
-
-    const mintResult = await mintItemNft({
-      contractAddress: itemContractAddress,
-      to: userAddress,
-      uri: tokenURI,
-    });
-
-    if (mintResult.tokenId === null) {
-      throw new Error("Failed to mint item NFT");
-    }
-
-    console.log(
-      `Successfully minted item NFT with ID ${mintResult.tokenId} to ${userAddress}`,
-    );
-
-    // Update item record with token ID and status
-    await db
-      .update(itemsTable)
-      .set({
-        tokenId: String(mintResult.tokenId),
-        transactionHash: mintResult.transactionHash,
-        mintStatus: NftMintStatus.enum.MINTED,
-        updatedAt: new Date(),
-      })
-      .where(eq(itemsTable.id, itemId));
-
-    // Update user status
-    await db
-      .update(usersTable)
-      .set({ itemNftStatus: NftMintStatus.enum.MINTED })
-      .where(eq(usersTable.id, userId));
-
-    return {
-      msg: `Item "${itemName}" successfully minted as NFT!`,
-      tokenId: mintResult.tokenId,
-      transactionHash: mintResult.transactionHash,
-      itemId: itemId,
-    };
-  } catch (error) {
-    console.error(`[Agent Tool - mintItem] Error for user ${userId}:`, error);
-
-    // Update user status if possible
-    try {
-      await db
-        .update(usersTable)
-        .set({ itemNftStatus: NftMintStatus.enum.MINTING_FAILED })
-        .where(eq(usersTable.id, userId));
-    } catch (dbError) {
-      console.error(
-        "[Agent Tool - mintItem] Failed to update user status:",
-        dbError,
-      );
-    }
-
-    return {
-      msg: "There was an issue with item NFT creation.",
-      error: error instanceof Error ? error.message : String(error),
-    };
-  }
-};
