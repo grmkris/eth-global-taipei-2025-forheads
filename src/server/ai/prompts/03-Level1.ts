@@ -6,6 +6,7 @@ export const level1PromptGenerator = (props: {
 }) => {
   const { characterSheet } = props;
   return `
+  Current level is Level 1:
   The player has the following character sheet:
   ${JSON.stringify(characterSheet)}
 

@@ -44,7 +44,7 @@ export const createAgentTools = (props: {
   const { userId } = props;
 
   const finishLevelTool = tool({
-    description: "Call this tool to finish the level",
+    description: "Call this tool to finish the current level",
     parameters: z.object({
       data: z.string(),
     }),
@@ -54,6 +54,7 @@ export const createAgentTools = (props: {
         orderBy: desc(levelProgressionTable.createdAt),
       });
       try {
+        // we are here checking for the level previous to the current level, because current level has to be inserted after the tool is executed
         switch (latestLevel?.data.type) {
           case undefined: {
             console.log(
@@ -66,7 +67,7 @@ export const createAgentTools = (props: {
               prompt: args.data,
             });
           }
-          case "level1-picture": {
+          case "pic": {
             console.log(
               `[Agent Tool - sheet] User ${userId} finishing sheet level.`,
             );
@@ -75,11 +76,11 @@ export const createAgentTools = (props: {
               prompt: args.data,
             });
             await db.insert(levelProgressionTable).values({
-              level: "level1-sheet",
+              level: "sheet",
               levelIndex: 0,
               userId: userId,
               data: {
-                type: "level1-sheet",
+                type: "sheet",
                 prompt: args.data,
                 characterSheet: characterSheet,
               } satisfies Level1SheetSchema,
@@ -88,15 +89,17 @@ export const createAgentTools = (props: {
               `[Agent Tool - sheet] Saved level1-sheet progression for user ${userId}.`,
             );
             return {
-              msg: "Sheet generated and user moved to next level",
+              level: "sheet",
+              levelIndex: 0,
+              message: "Sheet generated and user moved to next level",
             };
           }
-          case "level1-sheet": {
+          case "sheet": {
             const latestLevel = await db.query.levelProgressionTable.findFirst({
               where: eq(levelProgressionTable.userId, userId),
               orderBy: desc(levelProgressionTable.createdAt),
             });
-            if (latestLevel?.data.type !== "level1-sheet") {
+            if (latestLevel?.data.type !== "sheet") {
               throw new Error("User is not in level 1");
             }
             const result = await completeLevel({
@@ -118,9 +121,7 @@ export const createAgentTools = (props: {
               userId: userId,
               data: result,
             });
-            return {
-              msg: "Level 1 generated and user moved to next level",
-            };
+            return result;
           }
           case "level": {
             const latestLevel = await db.query.levelProgressionTable.findFirst({
@@ -184,11 +185,11 @@ export const handlePicLevel = async (props: {
 
     // 2. Save initial progress
     await db.insert(levelProgressionTable).values({
-      level: "level1-picture",
+      level: "pic",
       levelIndex: 0,
       userId,
       data: {
-        type: "level1-picture",
+        type: "pic",
         prompt,
         image,
         tokenId: null,
@@ -238,16 +239,12 @@ export const handlePicLevel = async (props: {
       uri: tokenURI,
     });
 
-    if (!mintResult.tokenId) {
+    // Debug the tokenId
+    console.log("Token ID from minting:", mintResult.tokenId);
+
+    if (mintResult.tokenId === null || mintResult.tokenId === undefined) {
       throw new Error("Failed to mint profile NFT");
     }
-
-    // Debug the tokenId
-    console.log("[DEBUG tokenId]", {
-      rawTokenId: mintResult.tokenId,
-      type: typeof mintResult.tokenId,
-      stringVersion: String(mintResult.tokenId),
-    });
 
     // Convert tokenId to number safely - use String first to ensure proper conversion
     const tokenIdNumber = mintResult.tokenId;
@@ -261,7 +258,7 @@ export const handlePicLevel = async (props: {
 
     // Create the updated data object
     const updatedData: Level1PictureSchema = {
-      type: "level1-picture",
+      type: "pic",
       prompt,
       image,
       tokenId: tokenIdNumber,
@@ -276,7 +273,7 @@ export const handlePicLevel = async (props: {
       .where(
         and(
           eq(levelProgressionTable.userId, userId),
-          eq(levelProgressionTable.level, "level1-picture"),
+          eq(levelProgressionTable.level, "pic"),
         ),
       );
 
@@ -286,7 +283,7 @@ export const handlePicLevel = async (props: {
     );
 
     return {
-      level: "level1-picture",
+      level: "pic",
       levelIndex: 0,
       message:
         "Picture generated, NFT collection deployed, and profile NFT minted!",

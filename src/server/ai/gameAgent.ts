@@ -30,17 +30,17 @@ const systemPrompt = async (props: { db: DbType; userId: UserId }) => {
   const latestLevel = levelProgression[levelProgression.length - 1];
 
   switch (latestLevel.data.type) {
-    case "level1-picture": {
+    case "pic": {
       return sheetMakerPromptGenerator();
     }
-    case "level1-sheet": {
+    case "sheet": {
       return level1PromptGenerator({
         characterSheet: latestLevel.data.characterSheet,
       });
     }
     case "level": {
       if (latestLevel.data.levelIndex === 0) {
-        return level1PromptGenerator({
+        return level2PromptGenerator({
           characterSheet: latestLevel.data.characterSheet,
         });
       }

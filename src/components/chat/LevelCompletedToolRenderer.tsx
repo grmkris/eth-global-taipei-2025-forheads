@@ -31,7 +31,7 @@ export const LevelCompletedToolRenderer = (props: {
         ? props.toolInvocation?.toolInvocation?.result?.levelIndex
         : undefined,
   });
-  console.log("qweqweqwe", props.toolInvocation);
+  console.log("qweqweqwe", { tool: props.toolInvocation, progression });
   const state = props.toolInvocation.toolInvocation.state;
 
   // Handle different states of the tool invocation
@@ -53,10 +53,10 @@ export const LevelCompletedToolRenderer = (props: {
 
   // Only proceed with full rendering when state is "result"
   if (state === "result") {
-    console.log(props.toolInvocation);
+    console.log("qqqqqq", props.toolInvocation);
 
     switch (progression?.[0]?.data.type) {
-      case "level1-picture":
+      case "pic":
         return (
           <Level1PictureRenderer
             imagebase64={progression?.[0]?.data.image}
@@ -64,7 +64,7 @@ export const LevelCompletedToolRenderer = (props: {
             nftContractAddress={userInfo?.nftContractAddress ?? null}
           />
         );
-      case "level1-sheet":
+      case "sheet":
         return <Level1SheetRenderer sheet={progression?.[0]?.data} />;
       case "level":
         return <LevelRenderer level={progression?.[0]?.data} />;

@@ -29,9 +29,9 @@ export const useProgression = (props: {
       if (!props.level) {
         throw new Error("Level is required");
       }
-      return getProgression(props.address, props.level, props.index);
+      return getProgression(props.address, props.level, props.index ?? 0);
     },
-    enabled: !!props.address && !!props.level && !!props.index,
+    enabled: !!props.address && !!props.level,
   });
 };
 

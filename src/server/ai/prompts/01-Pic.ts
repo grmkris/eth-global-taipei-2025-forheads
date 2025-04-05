@@ -1,5 +1,6 @@
 export const picPromptGenerator = () => {
   return `
+  Current level is Character Image generation:
   You will be gaterring information about the player backtory and his charecter look.
 
 Must have information: Name and race.

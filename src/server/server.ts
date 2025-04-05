@@ -305,7 +305,7 @@ export const app = new Hono()
         address: z.string(),
         level: schema.Level,
         // levelIndex is only required when level is "level"
-        levelIndex: z.number().int().min(0).optional(),
+        levelIndex: z.coerce.number().int().min(0).optional(),
       }),
     ),
     async (c) => {
@@ -362,8 +362,8 @@ export const app = new Hono()
 
       // Find the latest relevant data by iterating through sorted entries
       for (const entry of levelProgressionEntries) {
-        // Find latest image from level1-picture
-        if (!latestImage && entry.level === "level1-picture") {
+        // Find latest image from pic
+        if (!latestImage && entry.level === "pic") {
           const parsedData = schema.Level1PictureSchema.safeParse(entry.data);
           if (parsedData.success) {
             latestImage = parsedData.data.image;
@@ -372,7 +372,7 @@ export const app = new Hono()
 
         // Find latest character sheet from any level or level1-sheet
         if (!latestCharacterSheet) {
-          if (entry.level === "level1-sheet") {
+          if (entry.level === "sheet") {
             const parsedData = schema.Level1SheetSchema.safeParse(entry.data);
             if (parsedData.success) {
               latestCharacterSheet = parsedData.data.characterSheet;
@@ -564,8 +564,8 @@ export const app = new Hono()
       if (highestLevelType) {
         // Map internal level name to a more user-friendly name
         const levelNameMap: Partial<Record<schema.Level, string>> = {
-          "level1-picture": "Stage 1: Character Picture",
-          "level1-sheet": "Stage 2: Character Sheet",
+          pic: "Stage 1: Character Picture",
+          sheet: "Stage 2: Character Sheet",
         };
 
         // For "level" type, use the levelIndex

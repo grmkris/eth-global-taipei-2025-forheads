@@ -4,6 +4,9 @@ import { MessageBubble } from "./MessageBubble";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { LevelCompletedToolRenderer } from "./LevelCompletedToolRenderer";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 
 // Component for rendering a single, inline, expandable tool invocation
 function InlineToolInvocation({
@@ -67,7 +70,7 @@ type AIMessageProps = Omit<
 };
 
 function AIMessage({ fullMessage, ...props }: AIMessageProps) {
-  console.log("AIMessage", fullMessage);
+  console.log("AIMessage", fullMessage.content);
   // Separate text and tool parts
   const textParts =
     fullMessage.parts?.filter((part) => part?.type === "text") || [];
@@ -85,17 +88,20 @@ function AIMessage({ fullMessage, ...props }: AIMessageProps) {
   // Render message content with text first, then tool calls
   const messageContent = (
     <div>
-      {/* Render Text Parts */}
+      {/* Render Text Parts with Markdown */}
       {textParts.map((part, index) => {
         if (!part || part.type !== "text") return null;
-        // Simplified text rendering with preserved whitespace
-        // Using a more unique key combining message ID and index
         return (
           <div
             key={`${fullMessage.id || "msg"}-text-${index}`}
-            className="whitespace-pre-wrap"
+            className="whitespace-pre-wrap break-words text-card-foreground"
           >
-            {part.text}
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeRaw]}
+            >
+              {part.text}
+            </ReactMarkdown>
           </div>
         );
       })}
@@ -122,20 +128,19 @@ function AIMessage({ fullMessage, ...props }: AIMessageProps) {
 
       {/* Fallback if parts is empty/missing, but content exists */}
       {!fullMessage.parts?.length && fullMessage.content && (
-        <p>{fullMessage.content}</p>
+        <div className="whitespace-pre-wrap break-words text-card-foreground">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeRaw]}
+          >
+            {fullMessage.content}
+          </ReactMarkdown>
+        </div>
       )}
     </div>
   );
 
-  return (
-    // Remove the outer div wrapper, pass content directly to bubble
-    <MessageBubble
-      variant="ai"
-      message={messageContent}
-      // No special onClick or className needed on the bubble itself now
-      {...props}
-    />
-  );
+  return <MessageBubble variant="ai" message={messageContent} {...props} />;
 }
 
 export { AIMessage };

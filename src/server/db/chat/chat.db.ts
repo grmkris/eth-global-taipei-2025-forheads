@@ -79,12 +79,12 @@ export const messagesTable = pgTable("messages", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const LEVELS = ["level1-picture", "level1-sheet", "level"] as const;
+export const LEVELS = ["pic", "sheet", "level"] as const;
 export const Level = z.enum(LEVELS);
 export type Level = z.infer<typeof Level>;
 
 export const Level1PictureSchema = z.object({
-  type: z.literal(Level.enum["level1-picture"]),
+  type: z.literal(Level.enum.pic),
   prompt: z.string(),
   image: z.string(), // base64 encoded image
   tokenId: z.number().int().min(0).nullable(),
@@ -204,7 +204,7 @@ export const CharacterSchema = z.object({
 export type CharacterSchema = z.infer<typeof CharacterSchema>;
 
 export const Level1SheetSchema = z.object({
-  type: z.literal(Level.enum["level1-sheet"]),
+  type: z.literal(Level.enum.sheet),
   prompt: z.string(),
   characterSheet: CharacterSchema,
 });
@@ -249,8 +249,8 @@ export const levelProgressionTable = pgTable("level_progression", {
 });
 
 export const ToolName2LevelMap = {
-  pic: "level1-picture",
-  sheet: "level1-sheet",
+  pic: "pic",
+  sheet: "sheet",
   level: "level",
 } as const;
 export type ToolName2LevelMap = typeof ToolName2LevelMap;
