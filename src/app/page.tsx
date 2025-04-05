@@ -1,3 +1,5 @@
+"use client";
+
 import { ChatInterface } from "@/app/_lib/ChatInterface";
 
 export const runtime = "edge";

@@ -19,7 +19,6 @@ export function ChatInterface() {
   });
   const initalMessages: Message[] = [];
   for (const m of conversation.data ?? []) {
-    // @ts-expect-error blablabla
     initalMessages.push({
       ...m.message,
       createdAt: m.message.createdAt
