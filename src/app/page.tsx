@@ -2,8 +2,6 @@
 
 import { ChatInterface } from "@/app/_lib/ChatInterface";
 
-export const runtime = "edge";
-
 export default function Home() {
 
   return (

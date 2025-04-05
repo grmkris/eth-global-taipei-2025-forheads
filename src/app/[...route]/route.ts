@@ -2,8 +2,6 @@ import { app } from "@/server/server";
 import { Hono } from "hono";
 import { handle } from "hono/vercel";
 
-export const runtime = "edge";
-
 const server = new Hono().basePath("/api").route("/", app);
 
 export const maxDuration = 60; // This function can run for a maximum of 60 seconds
