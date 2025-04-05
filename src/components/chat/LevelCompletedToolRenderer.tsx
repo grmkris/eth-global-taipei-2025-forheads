@@ -1,15 +1,15 @@
 import type { Message } from "@ai-sdk/react";
-import { useProgression } from "@/lib/chatHooks";
+import { useProgression, useUserInfo } from "@/lib/chatHooks";
 import { useAccount } from "wagmi";
 import Image from "next/image";
 import { ToolName2LevelMap, type Level1SheetSchema } from "@/server/db/chat/chat.db";
-import { AgentLevel } from "@/server/ai/gameAgent";
+import { AgentLevel } from "@/server/db/chat/chat.zod";
 
 export const LevelCompletedToolRenderer = (props: {
   toolInvocation: Extract<NonNullable<Message["parts"]>[number], { type: "tool-invocation" }>;
 }) => {
   const account = useAccount();
-
+  const { data: userInfo } = useUserInfo({ address: account.address });
   console.log("qweqweqwe", props.toolInvocation);
   const gameLevel = AgentLevel.parse(props.toolInvocation.toolInvocation.args.level);
   const level = ToolName2LevelMap[gameLevel];
@@ -18,11 +18,11 @@ export const LevelCompletedToolRenderer = (props: {
     address: account.address,
     level: level,
   });
-  
+
 
   switch (progression?.[0]?.data.type) {
     case "level1-picture":
-      return <Level1PictureRenderer imagebase64={progression?.[0]?.data.image} />;
+      return <Level1PictureRenderer imagebase64={progression?.[0]?.data.image} tokenId={progression?.[0]?.data.tokenId} nftContractAddress={userInfo?.nftContractAddress ?? null} />;
     case "level1-sheet":
       return <Level1SheetRenderer sheet={progression?.[0]?.data} />;
   }
@@ -35,9 +35,27 @@ export const LevelCompletedToolRenderer = (props: {
  */
 const Level1PictureRenderer = (props: {
   imagebase64: string;
+  tokenId: number | null;
+  nftContractAddress: string | null;
 }) => {
   const imageSrc = `data:image/png;base64,${props.imagebase64}`;
-  return <Image src={imageSrc} alt="Level 1 Picture" width={100} height={100} />;
+  const openSeaUrl = props.nftContractAddress && props.tokenId
+    ? `https://opensea.io/item/flow/${props.nftContractAddress}/${props.tokenId}`
+    : null;
+
+  return (
+    <div className="mt-2 p-4 border rounded-md bg-muted/50 shadow flex flex-col items-center gap-2">
+      {openSeaUrl ? (
+        <a href={openSeaUrl} target="_blank" rel="noopener noreferrer" title="View on OpenSea">
+          <Image src={imageSrc} alt="Level 1 Picture NFT" width={100} height={100} className="rounded" />
+        </a>
+      ) : (
+        <Image src={imageSrc} alt="Level 1 Picture" width={100} height={100} className="rounded" />
+      )}
+      {props.tokenId && <p className="text-xs">Token ID: {props.tokenId}</p>}
+      {props.nftContractAddress && <p className="text-xs truncate max-w-[150px]" title={props.nftContractAddress}>Contract: {props.nftContractAddress}</p>}
+    </div>
+  );
 };
 
 /**

@@ -27,3 +27,15 @@ export const getProgression = async (address: string, level: Level) => {
   const data = await progression.json();
   return data;
 };
+
+
+export const getUserInfo = async (address: string) => {
+  const userInfo = await apiClient["user-info"].$get({
+    query: { address },
+  });
+  if (userInfo.status !== 200) {
+    throw new Error("Failed to get user info");
+  }
+  const data = await userInfo.json();
+  return data;
+};

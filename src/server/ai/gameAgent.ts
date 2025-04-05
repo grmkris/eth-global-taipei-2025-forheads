@@ -8,7 +8,6 @@ import { typeIdGenerator, type UserId } from "@/server/db/typeid";
 import type { AiClient } from "./aiClient";
 import type { ChatHistoryService } from "./chatHistoryService";
 import { picPromptGenerator } from "./prompts/01-Pic";
-import { z } from "zod";
 import {
   levelProgressionTable,
 } from "../db/chat/chat.db";
@@ -53,10 +52,6 @@ const systemPrompt = async (props: { db: DbType; userId: UserId }) => {
     }
   }
 }
-
-export const AGENT_LEVELS = ["pic", "sheet", "level1", "level2"] as const;
-export const AgentLevel = z.enum(AGENT_LEVELS);
-export type AgentLevel = z.infer<typeof AgentLevel>;
 
 export const createGameAgent = (props: {
   deps: {

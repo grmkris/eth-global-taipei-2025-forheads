@@ -525,6 +525,24 @@ export const app = new Hono()
     },
   )
 
+  // get user information
+  .get(
+    "/user-info",
+    zValidator("query", z.object({ address: z.string().refine(isAddress, "Invalid address format") })),
+    async (c) => {  
+      const address = c.req.valid("query").address;
+      const userId = await getUserIdFromContext(address);
+
+      const user = await db.query.usersTable.findFirst({
+        where: eq(schema.usersTable.id, userId),
+      });
+      if (!user) {
+        return c.json({ error: "User not found" }, 404);
+      }
+      return c.json(user);
+    },
+  )
+
 export type AppType = typeof app;
 
 async function getUserIdFromContext(address: string): Promise<UserId> {

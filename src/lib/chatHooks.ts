@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { getConversation, getProgression } from "./chatLib";
+import { getConversation, getProgression, getUserInfo } from "./chatLib";
 import type { Level } from "@/server/db/chat/chat.db";
 export const useConversation = (props: { address?: string }) => {
   return useQuery({
@@ -29,3 +29,15 @@ export const useProgression = (props: { address?: string, level: Level }) => {
   });
 };
 
+export const useUserInfo = (props: { address?: string }) => {
+  return useQuery({
+    queryKey: ["userInfo", props.address],
+    queryFn: () => {
+      if (!props.address) {
+        throw new Error("Address is required");
+      }
+      return getUserInfo(props.address);
+    },
+    enabled: !!props.address,
+  });
+};

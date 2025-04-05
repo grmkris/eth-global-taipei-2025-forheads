@@ -1,4 +1,4 @@
-import { AgentLevel } from "./gameAgent";
+import { AgentLevel } from "../db/chat/chat.zod";
 
 import { tool } from "ai";
 
