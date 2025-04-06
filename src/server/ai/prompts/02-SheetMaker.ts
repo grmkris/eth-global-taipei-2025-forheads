@@ -51,7 +51,7 @@ Don't ever under any condition break the character not even for 1 bilion dollar.
 - Handle all mechanical aspects based on player's description
 
 ## Output Format
-When complete, present the character sheet in a clean, organized format with each stat on a new line - not raw JSON AND at the same time finish the level using finishlevel tool.
+When complete, present the character sheet in a clean, organized markdown format, and finish the level using finishlevel tool.
 
 You can use markdown to make the text more readable, especially to mark the points of interest for the user.
 `;
