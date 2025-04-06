@@ -1,6 +1,6 @@
 import type { Message } from "@ai-sdk/react";
 import { useProgression, useUserInfo } from "@/lib/chatHooks";
-import { useAccount } from "wagmi";
+import { useAccount, useChainId } from "wagmi";
 import Image from "next/image";
 import {
   ToolName2LevelMap,
@@ -8,6 +8,22 @@ import {
   type LevelSchema,
 } from "@/server/db/chat/chat.db";
 import { AgentLevel } from "@/server/db/chat/chat.zod";
+import { flowMainnet, citreaTestnet, rootstockTestnet } from "viem/chains";
+
+// Helper function to get explorer URL based on chain ID
+const getExplorerUrl = (chainId: number, hash: string, type: 'tx' | 'address'): string => {
+  if (chainId === flowMainnet.id) {
+    return `https://evm.flowscan.io/${type}/${hash}`;
+  }
+  if (chainId === citreaTestnet.id) {
+    return `https://explorer.testnet.citrea.xyz/${type}/${hash}`;
+  }
+  if (chainId === rootstockTestnet.id) {
+    return `https://explorer.testnet.rsk.co/${type}/${hash}`;
+  }
+  // Default fallback
+  return `https://evm.flowscan.io/${type}/${hash}`;
+};
 
 export const LevelCompletedToolRenderer = (props: {
   toolInvocation: Extract<
@@ -16,6 +32,7 @@ export const LevelCompletedToolRenderer = (props: {
   >;
 }) => {
   const account = useAccount();
+  const chainId = useChainId();
   const { data: userInfo } = useUserInfo({ address: account.address });
   const gameLevel = AgentLevel.optional().parse(
     props.toolInvocation?.toolInvocation?.state === "result"
@@ -69,12 +86,15 @@ export const LevelCompletedToolRenderer = (props: {
             imagebase64={progression?.[0]?.data.image}
             tokenId={progression?.[0]?.data.tokenId}
             nftContractAddress={userInfo?.nftContractAddress ?? null}
+            chainId={chainId}
           />
         );
       case "sheet":
         return <Level1SheetRenderer sheet={progression?.[0]?.data} />;
       case "level":
-        return <LevelRenderer level={progression?.[0]?.data} />;
+        return (
+          <LevelRenderer level={progression?.[0]?.data} chainId={chainId} />
+        );
     }
   }
 
@@ -99,6 +119,7 @@ const Level1PictureRenderer = (props: {
   imagebase64: string;
   tokenId: number | null;
   nftContractAddress: string | null;
+  chainId: number;
 }) => {
   const imageSrc = `data:image/png;base64,${props.imagebase64}`;
   console.log("props.nftContractAddress", props);
@@ -138,12 +159,15 @@ const Level1PictureRenderer = (props: {
         <p className="text-xs">Token ID: {props.tokenId}</p>
       )}
       {props.nftContractAddress && (
-        <p
-          className="text-xs truncate max-w-[150px]"
+        <a
+          href={getExplorerUrl(props.chainId, props.nftContractAddress, 'address')}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs truncate max-w-[150px] text-primary hover:underline"
           title={props.nftContractAddress}
         >
-          Contract: {props.nftContractAddress}
-        </p>
+          Contract: {props.nftContractAddress.slice(0, 10)}...
+        </a>
       )}
     </div>
   );
@@ -179,7 +203,7 @@ const Level1SheetRenderer = (props: { sheet: Level1SheetSchema }) => {
   );
 };
 
-const LevelRenderer = (props: { level: LevelSchema }) => {
+const LevelRenderer = (props: { level: LevelSchema; chainId: number }) => {
   const { characterSheet, items, levelSummary, levelIndex } = props.level;
   const { character, attributes } = characterSheet;
   const attributeEntries = Object.entries(attributes);
@@ -249,6 +273,28 @@ const LevelRenderer = (props: { level: LevelSchema }) => {
                     title="View on OpenSea"
                   >
                     View on OpenSea
+                  </a>
+                )}
+                {item.transactionHash && (
+                  <a
+                    href={getExplorerUrl(props.chainId, item.transactionHash, 'tx')}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-primary mt-1 hover:underline"
+                    title="View transaction on block explorer"
+                  >
+                    View Transaction
+                  </a>
+                )}
+                {item.contractAddress && (
+                  <a
+                    href={getExplorerUrl(props.chainId, item.contractAddress, 'address')}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-primary mt-1 hover:underline"
+                    title="View contract on block explorer"
+                  >
+                    View Contract
                   </a>
                 )}
               </div>
