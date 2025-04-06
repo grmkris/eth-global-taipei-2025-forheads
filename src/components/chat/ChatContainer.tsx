@@ -12,11 +12,15 @@ type ChatContainerProps = React.HTMLAttributes<HTMLDivElement> & {
 const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
   ({ className, children, ...props }, ref) => {
     return (
-      <ScrollArea ref={ref} className={cn("h-full w-full flex-1", className)} {...props}>
+      <ScrollArea
+        ref={ref}
+        className={cn("h-full w-full flex-1", className)}
+        {...props}
+      >
         <div className="p-4">{children}</div>
       </ScrollArea>
     );
-  }
+  },
 );
 
 ChatContainer.displayName = "ChatContainer";

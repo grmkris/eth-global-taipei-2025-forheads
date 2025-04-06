@@ -23,20 +23,23 @@ export const LevelCompletedToolRenderer = (props: {
       : undefined,
   );
   const level = gameLevel ? ToolName2LevelMap[gameLevel] : undefined;
-  const levelIndex = 
-  props.toolInvocation?.toolInvocation?.state === "result"
-    ? props.toolInvocation?.toolInvocation?.result?.levelIndex
-    : undefined
-  console.log("qweqweqwe levelIndex", {levelIndex, level});
+  const levelIndex =
+    props.toolInvocation?.toolInvocation?.state === "result"
+      ? props.toolInvocation?.toolInvocation?.result?.levelIndex
+      : undefined;
+  console.log("qweqweqwe levelIndex", { levelIndex, level });
   const { data: progression } = useProgression({
     address: account.address,
     level: level,
-    index:levelIndex,
+    index: levelIndex,
   });
   console.log("qweqweqwe", { tool: props.toolInvocation, progression });
   const state = props.toolInvocation.toolInvocation.state;
 
-  console.log("qweqweqwe state toolName: ", {toolName: props.toolInvocation.toolInvocation.toolName, state});
+  console.log("qweqweqwe state toolName: ", {
+    toolName: props.toolInvocation.toolInvocation.toolName,
+    state,
+  });
 
   // Handle different states of the tool invocation
   if (state === "call") {
@@ -76,7 +79,10 @@ export const LevelCompletedToolRenderer = (props: {
   }
 
   // Fallback for any unexpected state
-  console.log("qweqweqwe state toolName fallback: ", {toolName: props.toolInvocation.toolInvocation.toolName, state});
+  console.log("qweqweqwe state toolName fallback: ", {
+    toolName: props.toolInvocation.toolInvocation.toolName,
+    state,
+  });
   return (
     <div className="mt-2 p-4 border rounded-md bg-muted/50 shadow">
       Waiting for result...
@@ -96,7 +102,7 @@ const Level1PictureRenderer = (props: {
 }) => {
   const imageSrc = `data:image/png;base64,${props.imagebase64}`;
   console.log("props.nftContractAddress", props);
-  
+
   const openSeaUrl =
     props.nftContractAddress && props.tokenId !== null
       ? `https://opensea.io/item/flow/${props.nftContractAddress}/${props.tokenId}`
@@ -128,7 +134,9 @@ const Level1PictureRenderer = (props: {
           className="rounded"
         />
       )}
-      {props.tokenId !== null && <p className="text-xs">Token ID: {props.tokenId}</p>}
+      {props.tokenId !== null && (
+        <p className="text-xs">Token ID: {props.tokenId}</p>
+      )}
       {props.nftContractAddress && (
         <p
           className="text-xs truncate max-w-[150px]"

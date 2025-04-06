@@ -57,9 +57,10 @@ export const createGameAgent = (props: {
     db: DbType;
   };
   userId: UserId;
+  chainId: number;
 }) => {
   const { aiClient, db } = props.deps;
-  const { userId } = props;
+  const { userId, chainId } = props;
 
   const tools = createAgentTools({
     deps: {
@@ -67,6 +68,7 @@ export const createGameAgent = (props: {
       db,
     },
     userId,
+    chainId,
   });
 
   return {

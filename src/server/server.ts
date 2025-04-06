@@ -173,13 +173,22 @@ export const app = new Hono()
       "json",
       // Use a union to accept either { message: ... } or { messages: [...] }
       z.union([
-        z.object({ message: MessageSchema, address: z.string() }),
-        z.object({ messages: z.array(MessageSchema), address: z.string() }),
+        z.object({
+          message: MessageSchema,
+          address: z.string(),
+          chainId: z.number(),
+        }),
+        z.object({
+          messages: z.array(MessageSchema),
+          address: z.string(),
+          chainId: z.number(),
+        }),
       ]),
     ),
     async (c) => {
       const data = c.req.valid("json");
       const address = data.address;
+      const chainId = data.chainId;
 
       // Extract the last message, adapting to the input format
       const userMessage =
@@ -220,7 +229,11 @@ export const app = new Hono()
         });
 
         // Initialize Game Agent (can be done once outside if stateless)
-        const gameAgent = createGameAgent({ deps: { aiClient, db }, userId });
+        const gameAgent = createGameAgent({
+          deps: { aiClient, db },
+          userId,
+          chainId,
+        });
 
         // Create chat history service instance for this request
         const chatHistoryService = createDrizzleChatHistoryService({
@@ -680,10 +693,12 @@ export const app = new Hono()
       "query",
       z.object({
         address: z.string().refine(isAddress, "Invalid address format"),
+        chainId: z.number(),
       }),
     ),
     async (c) => {
       const address = c.req.valid("query").address;
+      const chainId = c.req.valid("query").chainId;
       console.log(
         `[Test Endpoint] Testing handlePicLevel for address: ${address}`,
       );
@@ -714,6 +729,7 @@ export const app = new Hono()
           aiClient,
           db,
           prompt: testPrompt,
+          chainId,
         });
 
         console.log("[Test Endpoint] handlePicLevel result:", result);

@@ -39,6 +39,7 @@ export const createAgentTools = (props: {
     db: db;
   };
   userId: UserId;
+  chainId: number;
 }) => {
   const { aiClient, db } = props.deps;
   const { userId } = props;
@@ -65,6 +66,7 @@ export const createAgentTools = (props: {
               aiClient,
               db,
               prompt: args.data,
+              chainId: props.chainId,
             });
           }
           case "pic": {
@@ -110,6 +112,7 @@ export const createAgentTools = (props: {
               aiClient,
               userId,
               db,
+              chainId: props.chainId,
             });
             console.log({
               msg: "Level 1 generated and user moved to next level",
@@ -127,7 +130,8 @@ export const createAgentTools = (props: {
               message: "Level 1 generated and user moved to next level",
               characterSheet: result.characterSheet,
               levelSummary: result.levelSummary,
-              items: result.items.map((item) => ({ // we return only the name and description of the items to not kill the context of the AI
+              items: result.items.map((item) => ({
+                // we return only the name and description of the items to not kill the context of the AI
                 name: item.name,
                 description: item.description,
               })),
@@ -150,6 +154,7 @@ export const createAgentTools = (props: {
               aiClient,
               userId,
               db,
+              chainId: props.chainId,
             });
             await db.insert(levelProgressionTable).values({
               level: "level",
@@ -193,8 +198,9 @@ export const handlePicLevel = async (props: {
   aiClient: AiClient;
   db: db;
   prompt: string;
+  chainId: number;
 }) => {
-  const { userId, aiClient, db, prompt } = props;
+  const { userId, aiClient, db, prompt, chainId } = props;
   console.log(`[Agent Tool - pic] User ${userId} finishing pic level.`);
 
   try {
@@ -234,7 +240,11 @@ export const handlePicLevel = async (props: {
       const name = `Forehead ${shortAddress}`;
       const symbol = `FH${shortAddress.replace(/\.|0x/g, "")}`;
 
-      contractAddress = await deployProfileNFTCollection({ name, symbol });
+      contractAddress = await deployProfileNFTCollection({
+        name,
+        symbol,
+        chainId,
+      });
 
       await db
         .update(usersTable)
@@ -255,6 +265,7 @@ export const handlePicLevel = async (props: {
       contractAddress,
       to: userAddress,
       uri: tokenURI,
+      chainId,
     });
 
     // Debug the tokenId
@@ -335,8 +346,9 @@ export const handleItemNftMint = async (props: {
   itemName: string;
   itemDescription: string;
   aiClient: AiClient;
+  chainId: number;
 }) => {
-  const { userId, db, itemName, itemDescription, aiClient } = props;
+  const { userId, db, itemName, itemDescription, aiClient, chainId } = props;
   console.log(
     `[Agent Tool - mintItem] Minting item NFT for user ${userId}: ${itemName}`,
   );
@@ -359,6 +371,7 @@ export const handleItemNftMint = async (props: {
     if (!itemContractAddress) {
       itemContractAddress = await deployItemNFTCollection({
         address: userAddress,
+        chainId,
       });
 
       // Update user record with new item contract address
@@ -385,7 +398,6 @@ export const handleItemNftMint = async (props: {
       itemName,
       itemDescription,
     });
-    
 
     // 3. Create item record in database
     const itemId = typeIdGenerator("item");
@@ -407,6 +419,7 @@ export const handleItemNftMint = async (props: {
       contractAddress: itemContractAddress,
       to: userAddress,
       uri: tokenURI,
+      chainId,
     });
 
     if (mintResult.tokenId === null) {
@@ -473,9 +486,17 @@ async function completeLevel(props: {
   aiClient: AiClient;
   userId: UserId;
   db: db;
+  chainId: number;
 }): Promise<LevelSchema> {
-  const { characterSheet, level1Messages, aiClient, levelIndex, userId, db } =
-    props;
+  const {
+    characterSheet,
+    level1Messages,
+    aiClient,
+    levelIndex,
+    userId,
+    db,
+    chainId,
+  } = props;
 
   // First AI call: Analyze the result to generate updated character sheet based on interactions
   const updatedCharacterResult = await aiClient.generateObject({
@@ -513,7 +534,7 @@ async function completeLevel(props: {
     
     Please analyze the interactions and generate items as rewards.
     Each item should have a name and description.`,
-    
+
     messages: level1Messages,
     schema: z.object({
       items: z.array(
@@ -545,6 +566,7 @@ async function completeLevel(props: {
           itemName: item.name,
           itemDescription: item.description,
           aiClient,
+          chainId,
         });
 
         if (mintResult.tokenId !== null && mintResult.itemId !== null) {

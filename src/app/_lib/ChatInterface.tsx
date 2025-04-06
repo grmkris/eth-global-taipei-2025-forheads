@@ -10,7 +10,7 @@ import { AIMessage } from "@/components/chat/AIMessage";
 import { UserMessage } from "@/components/chat/UserMessage";
 import { ChatInputBar } from "@/components/chat/ChatInputBar";
 import { typeIdGenerator } from "@/server/db/typeid";
-import { useAccount } from "wagmi";
+import { useAccount, useChainId } from "wagmi";
 import { useConversation } from "@/lib/chatHooks";
 import ConnectButton from "@/components/web3/connect-button";
 import { Button } from "@/components/ui/button";
@@ -18,12 +18,12 @@ import { RefreshCwIcon } from "lucide-react";
 
 export function ChatInterface() {
   const { address } = useAccount();
+  const chainId = useChainId();
   const conversation = useConversation({
     address: address,
   });
   const initalMessages: Message[] = [];
   for (const m of conversation.data ?? []) {
-
     initalMessages.push({
       ...m.message,
       createdAt: m.message.createdAt
@@ -49,7 +49,7 @@ export function ChatInterface() {
     },
     sendExtraMessageFields: true,
     experimental_prepareRequestBody({ messages, id }) {
-      return { message: messages[messages.length - 1], id, address };
+      return { message: messages[messages.length - 1], id, address, chainId };
     },
   });
 
@@ -63,12 +63,12 @@ export function ChatInterface() {
 
   // Auto-scroll when messages or loading states change
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
-    useEffect(() => {
+  useEffect(() => {
     // Scroll to bottom with a small delay to ensure rendering is complete
     const timer = setTimeout(() => {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }, 100);
-    
+
     return () => clearTimeout(timer);
   }, [isLoading, isStreaming, isError]);
 

@@ -9,7 +9,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { serverEnv } from "../serverEnv";
 import { contractAddresses } from "./contract_addresses";
 import { factoryABI } from "./factoryABI";
-import { flowMainnet } from "viem/chains";
+import { flowMainnet, citreaTestnet, rootstockTestnet } from "viem/chains";
 import { waitForTransactionReceipt } from "viem/actions";
 import { forehead721ABI } from "./forehead721ABI";
 import { encodeEventTopics } from "viem";
@@ -17,24 +17,39 @@ import { encodeEventTopics } from "viem";
 export const deployProfileNFTCollection = async (props: {
   name: string;
   symbol: string;
+  chainId: number;
 }) => {
-  const { name, symbol } = props;
+  const { name, symbol, chainId } = props;
+
+  const chain =
+    chainId === flowMainnet.id
+      ? flowMainnet
+      : chainId === citreaTestnet.id
+      ? citreaTestnet
+      : rootstockTestnet;
+
+  const contractAddress =
+    chainId === flowMainnet.id
+      ? contractAddresses.flowMainnet
+      : chainId === citreaTestnet.id
+      ? contractAddresses.citreaTestnet
+      : contractAddresses.rootstockTestnet;
 
   const walletClient = createWalletClient({
     account: privateKeyToAccount(serverEnv.PRIVATE_KEY as `0x${string}`),
     transport: http(),
-    chain: flowMainnet,
+    chain,
   });
 
   const contract = getContract({
-    address: contractAddresses.flowMainnet,
+    address: contractAddress,
     abi: factoryABI,
     client: walletClient,
   });
 
   const tx = await contract.write.deployNFTContract([name, symbol], {
     account: walletClient.account,
-    chain: flowMainnet,
+    chain,
   });
   const receipt = await waitForTransactionReceipt(walletClient, { hash: tx });
 
@@ -103,13 +118,21 @@ export const mintProfileNFT = async (props: {
   contractAddress: `0x${string}`; // Expecting 0x prefixed address
   to: `0x${string}`; // Expecting 0x prefixed address
   uri: string; // Changed from tokenId to uri
+  chainId: number;
 }) => {
-  const { contractAddress, to, uri } = props; // Updated props
+  const { contractAddress, to, uri, chainId } = props; // Updated props
+
+  const chain =
+    chainId === flowMainnet.id
+      ? flowMainnet
+      : chainId === citreaTestnet.id
+      ? citreaTestnet
+      : rootstockTestnet;
 
   const walletClient = createWalletClient({
     account: privateKeyToAccount(serverEnv.PRIVATE_KEY as `0x${string}`),
     transport: http(),
-    chain: flowMainnet,
+    chain,
   });
 
   const contract = getContract({
@@ -121,7 +144,7 @@ export const mintProfileNFT = async (props: {
   // Call the correct safeMint function with uri
   const tx = await contract.write.safeMint([to, uri], {
     account: walletClient.account,
-    chain: flowMainnet,
+    chain,
   });
 
   const txResult = await waitForTransactionReceipt(walletClient, { hash: tx });
@@ -189,13 +212,21 @@ export const mintItemNft = async (props: {
   contractAddress: `0x${string}`; // Expecting 0x prefixed address
   to: `0x${string}`; // Expecting 0x prefixed address
   uri: string; // Changed from tokenId to uri
+  chainId: number;
 }) => {
-  const { contractAddress, to, uri } = props; // Updated props
+  const { contractAddress, to, uri, chainId } = props; // Updated props
+
+  const chain =
+    chainId === flowMainnet.id
+      ? flowMainnet
+      : chainId === citreaTestnet.id
+      ? citreaTestnet
+      : rootstockTestnet;
 
   const walletClient = createWalletClient({
     account: privateKeyToAccount(serverEnv.PRIVATE_KEY as `0x${string}`),
     transport: http(),
-    chain: flowMainnet,
+    chain,
   });
 
   const contract = getContract({
@@ -206,7 +237,7 @@ export const mintItemNft = async (props: {
 
   const tx = await contract.write.safeMint([to, uri], {
     account: walletClient.account,
-    chain: flowMainnet,
+    chain,
   });
 
   const txResult = await waitForTransactionReceipt(walletClient, { hash: tx });
@@ -272,13 +303,28 @@ export const mintItemNft = async (props: {
 
 export const deployItemNFTCollection = async (props: {
   address: `0x${string}`;
+  chainId: number;
 }) => {
-  const { address } = props;
+  const { address, chainId } = props;
+
+  const chain =
+    chainId === flowMainnet.id
+      ? flowMainnet
+      : chainId === citreaTestnet.id
+      ? citreaTestnet
+      : rootstockTestnet;
+
+  const contractAddress =
+    chainId === flowMainnet.id
+      ? contractAddresses.flowMainnet
+      : chainId === citreaTestnet.id
+      ? contractAddresses.citreaTestnet
+      : contractAddresses.rootstockTestnet;
 
   const walletClient = createWalletClient({
     account: privateKeyToAccount(serverEnv.PRIVATE_KEY as `0x${string}`),
     transport: http(),
-    chain: flowMainnet,
+    chain,
   });
 
   const shortAddress = `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -286,14 +332,14 @@ export const deployItemNFTCollection = async (props: {
   const symbol = `FHI${shortAddress.replace(/\.|0x/g, "")}`;
 
   const contract = getContract({
-    address: contractAddresses.flowMainnet,
+    address: contractAddress,
     abi: factoryABI,
     client: walletClient,
   });
 
   const tx = await contract.write.deployNFTContract([name, symbol], {
     account: walletClient.account,
-    chain: flowMainnet,
+    chain,
   });
   const receipt = await waitForTransactionReceipt(walletClient, { hash: tx });
 
