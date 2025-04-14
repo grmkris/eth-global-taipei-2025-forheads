@@ -81,6 +81,13 @@ export function ChatInterface() {
     });
   };
 
+  // Add new handler for button clicks
+  const handleButtonClick = (value: string, label: string) => {
+    console.log("Button clicked:", label);
+    // Use the button's label as the user message
+    handleSendMessage(label);
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Chat container */}
@@ -110,6 +117,7 @@ export function ChatInterface() {
                       key={message.id}
                       fullMessage={message}
                       avatarFallback="AI" // Add default fallback
+                      onButtonClick={handleButtonClick}
                     />
                   );
                 default:

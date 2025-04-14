@@ -46,9 +46,24 @@ When you have gathered sufficient information, call the finishLevel tool with th
 Example flow:
 "What's your character's name?"
 "What race or species are they?"
-"Male, female, or other?"
+"What is your character's gender?	"
 "How would you describe their build and height?"
 ...
+
+After asking a question you can suggest a few options for the user to choose from.
+Output should be in the following format:
+
+{
+  "What's your character's name?": ["Option 1"; "Option 2"; "Option 3"].
+  "What race or species are they?": ["Option 1"; "Option 2"; "Option 3"].
+  "What is your character's gender?": ["Option 1"; "Option 2"; "Option 3"].
+  "How would you describe their build and height?": ["Option 1"; "Option 2"; "Option 3"].
+}
+
+Give the user a few options to choose from.
+Before you finish ask this specific question:
+"Would you add anything else to the character?"
+
 
 You can use markdown to make the text more readable, especially to mark the points of interest for the user.
 `;

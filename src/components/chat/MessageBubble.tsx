@@ -36,6 +36,13 @@ const bubbleVariants = cva(
   },
 );
 
+// Define button option interface
+interface ButtonOption {
+  label: string;
+  value: string;
+  onClick?: (value: string, label: string) => void;
+}
+
 interface MessageBubbleProps
   extends React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof messageVariants> {
@@ -43,6 +50,8 @@ interface MessageBubbleProps
   avatarFallback?: string;
   message: React.ReactNode;
   timestamp?: string; // Optional timestamp
+  buttonOptions?: ButtonOption[]; // New prop for button options
+  onButtonClick?: (value: string, label: string) => void; // Updated to include label
 }
 
 function MessageBubble({
@@ -52,12 +61,15 @@ function MessageBubble({
   avatarFallback,
   message,
   timestamp,
+  buttonOptions,
+  onButtonClick,
   ...props
 }: MessageBubbleProps) {
   const [isTtsLoading, setIsTtsLoading] = useState(false);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
   const messageRef = useRef<HTMLDivElement>(null);
   const [extractedText, setExtractedText] = useState<string>("");
+  const [selectedButton, setSelectedButton] = useState<string | null>(null);
 
   const bubbleClassName = cn(bubbleVariants({ variant }));
   const avatar = (
@@ -136,6 +148,16 @@ function MessageBubble({
     }
   };
 
+  // Handle button click
+  const handleButtonClick = (option: ButtonOption) => {
+    setSelectedButton(option.value);
+    if (option.onClick) {
+      option.onClick(option.value, option.label);
+    } else if (onButtonClick) {
+      onButtonClick(option.value, option.label);
+    }
+  };
+
   return (
     <div className={cn(messageVariants({ variant }), className)} {...props}>
       {variant === "ai" && avatar}
@@ -148,6 +170,25 @@ function MessageBubble({
         <div className={bubbleClassName}>
           <div className="flex flex-col">
             <div ref={messageRef}>{message}</div>
+            
+            {/* Button response options */}
+            {buttonOptions && buttonOptions.length > 0 && variant === "ai" && (
+              <div className="flex flex-col gap-2 mt-3">
+                {buttonOptions.map((option) => (
+                  <Button
+                    key={option.value}
+                    variant={selectedButton === option.value ? "default" : "outline"}
+                    size="sm"
+                    className="justify-start text-left"
+                    onClick={() => handleButtonClick(option)}
+                    disabled={selectedButton !== null}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
+            )}
+            
             {variant === "ai" && (
               <div className="flex justify-end mt-1">
                 <TooltipProvider>
@@ -193,4 +234,5 @@ function MessageBubble({
   );
 }
 
-export { MessageBubble }; 
+export { MessageBubble };
+export type { ButtonOption }; 

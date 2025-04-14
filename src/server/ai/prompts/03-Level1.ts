@@ -10,7 +10,7 @@ export const level1PromptGenerator = (props: {
   The player has the following character sheet:
   ${JSON.stringify(characterSheet)}
 
-  This are the roles that you should follow as DM:
+  This are the rules that you should follow as DM:
   ${combatRulesPromptGenerator()}
 
   If the player trys to say some stupid stuff that do not make secne in the context you can be rude to him and make him get back on track.
@@ -119,7 +119,8 @@ The cabin consists of 3 key areas connected as follows:
 - **Map to Forgotten Shrine:** Makes finding the next location easier
 - **Optional: Knowledge** - Tilda can teach a simple herb recipe if befriended
 
-## RUNNING THE LEVEL
+
+## RUNNING THE LEVEL (Never mention these things in the conversation)
 - Perfect introduction to basic game mechanics (exploration, dialogue, simple puzzles)
 - Entire adventure can be completed in 5-10 minutes
 - Tilda can become a recurring character who offers herb-related side quests
