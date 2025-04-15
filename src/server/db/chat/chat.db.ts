@@ -112,6 +112,10 @@ export const CharacterSchema = z.object({
     background: z.string(),
     alignment: z.string(),
     experience: z.number().int().min(0),
+    inspiration: z.boolean().default(false),
+    proficiencyBonus: z.number().int().default(2),
+    speed: z.number().int().default(30),
+    size: z.enum(["Tiny", "Small", "Medium", "Large", "Huge", "Gargantuan"]).default("Medium"),
   }),
 
   attributes: z.object({
@@ -126,10 +130,16 @@ export const CharacterSchema = z.object({
   status: z.object({
     max_hp: z.number().int().nullable(),
     current_hp: z.number().int().nullable(),
+    temp_hp: z.number().int().nullable().default(0),
     armor_class: z.number().int().nullable(),
     initiative: z.number().int().nullable(),
     speed: z.number().int().nullable(),
     passive_perception: z.number().int().nullable(),
+    hitDice: z.string().optional(),
+    deathSaves: z.object({
+      successes: z.number().int().min(0).max(3).default(0),
+      failures: z.number().int().min(0).max(3).default(0),
+    }).default({ successes: 0, failures: 0 }),
   }),
 
   proficiencies: z.object({
@@ -140,6 +150,27 @@ export const CharacterSchema = z.object({
     armor: z.array(z.string()),
     tools: z.array(z.string()),
   }),
+
+  skills: z.record(z.string(), z.object({
+    proficient: z.boolean().default(false),
+    expertise: z.boolean().default(false),
+    attribute: z.string(),
+  })).default({}),
+
+  spellcasting: z.object({
+    ability: z.string().nullable(),
+    spellSaveDC: z.number().int().nullable(),
+    spellAttackBonus: z.number().int().nullable(),
+    spellSlots: z.record(z.string(), z.object({
+      total: z.number().int(),
+      expended: z.number().int(),
+    })).optional(),
+    spells: z.array(z.object({
+      name: z.string(),
+      level: z.number().int().min(0).max(9),
+      prepared: z.boolean().default(false),
+    })).default([]),
+  }).nullable().optional(),
 
   inventory: z.object({
     equipment: z.array(

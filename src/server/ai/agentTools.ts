@@ -485,8 +485,32 @@ async function completeLevel(props: {
     }),
     system: `You are a Dungeon Master who analyzes player interactions and updates character sheets.
     You've been given a chat history between a player and an AI Dungeon Master.
-    Your task is to update the character sheet based on the events and interactions that occurred.
-    Consider any new skills learned, items acquired, character development, or stat changes.
+    
+    CAREFULLY UPDATE THE CHARACTER SHEET BASED ON THE ADVENTURE OUTCOME:
+    
+    1. HP CHANGES: 
+       - If the character took damage, reduce current HP accordingly
+       - If they healed or rested, increase current HP (but never above max_hp)
+       
+    2. XP AND LEVELING:
+       - Award appropriate XP for combat encounters and puzzle solving
+       - If they reach a milestone, increase their level and calculate new stats
+       
+    3. INVENTORY CHANGES:
+       - Add any items found or given during the adventure
+       - Remove items that were used up or lost
+       - Mark items as equipped if the character started using them
+       
+    4. SKILL ACQUISITION:
+       - Add any new skills, proficiencies, or abilities gained
+       - If they've practiced a skill extensively, consider adding proficiency
+    
+    5. FUNDS AND RESOURCES:
+       - Update gold, gems, or other valuables found or spent
+       
+    Be thorough but realistic with these updates. The changes should reflect
+    what actually happened in the adventure.
+    
     Here is the character's current sheet
     ${JSON.stringify(characterSheet, null, 2)}
     
@@ -495,7 +519,18 @@ async function completeLevel(props: {
     schema: CharacterSchema,
   });
 
-  const updatedCharacterSheet = updatedCharacterResult.object;
+  let updatedCharacterSheet = updatedCharacterResult.object;
+  
+  // Validate key character sheet values
+  ensureValidStats(updatedCharacterSheet);
+  
+  // Check for level up
+  const levelUpResult = await checkForLevelUp(updatedCharacterSheet);
+  if (levelUpResult.leveledUp) {
+    console.log(`Character leveled up to level ${levelUpResult.newSheet.character.level}!`);
+    updatedCharacterSheet = levelUpResult.newSheet;
+  }
+  
   console.log("Character sheet updated:", updatedCharacterSheet);
 
   // Second AI call: Analyze the result to generate items to mint
@@ -509,7 +544,7 @@ async function completeLevel(props: {
     Your task is to generate appropriate item rewards based on the adventure and the character's actions.
     Items should be thematically appropriate, balanced for the character's level, and interesting.
     The player has completed an adventure at level ${levelIndex}. 
-    Their character is: ${JSON.stringify(characterSheet.character, null, 2)}
+    Their character is: ${JSON.stringify(updatedCharacterSheet.character, null, 2)}
     
     Please analyze the interactions and generate items as rewards.
     Each item should have a name and description.`,
@@ -528,8 +563,14 @@ async function completeLevel(props: {
     }),
   });
 
+  // If the character leveled up, add it to the summary
+  let levelSummary = itemsResult.object.levelSummary;
+  if (levelUpResult.leveledUp) {
+    levelSummary += ` The character leveled up to level ${updatedCharacterSheet.character.level}!`;
+  }
+
   console.log("Items generated:", itemsResult.object.items);
-  console.log("Level summary:", itemsResult.object.levelSummary);
+  console.log("Level summary:", levelSummary);
 
   // Create array to store minted items
   const mintedItems: ItemSchema[] = [];
@@ -573,7 +614,100 @@ async function completeLevel(props: {
     levelIndex,
     prompt: "completed level", // Using a default prompt since we're not generating from a prompt
     characterSheet: updatedCharacterSheet,
-    levelSummary: itemsResult.object.levelSummary,
+    levelSummary: levelSummary,
     items: mintedItems,
   };
+}
+
+// Helper function to validate character stats
+function ensureValidStats(characterSheet: CharacterSchema) {
+  // Make sure HP doesn't exceed maximum
+  if (characterSheet.status.current_hp !== null && 
+      characterSheet.status.max_hp !== null && 
+      characterSheet.status.current_hp > characterSheet.status.max_hp) {
+    characterSheet.status.current_hp = characterSheet.status.max_hp;
+  }
+  
+  // Ensure level and proficiency bonus are in sync
+  const expectedProfBonus = Math.floor((characterSheet.character.level - 1) / 4) + 2;
+  characterSheet.character.proficiencyBonus = expectedProfBonus;
+  
+  // Ensure attribute scores are valid
+  if (characterSheet.attributes.strength < 0) characterSheet.attributes.strength = 0;
+  if (characterSheet.attributes.dexterity < 0) characterSheet.attributes.dexterity = 0;
+  if (characterSheet.attributes.constitution < 0) characterSheet.attributes.constitution = 0;
+  if (characterSheet.attributes.intelligence < 0) characterSheet.attributes.intelligence = 0;
+  if (characterSheet.attributes.wisdom < 0) characterSheet.attributes.wisdom = 0;
+  if (characterSheet.attributes.charisma < 0) characterSheet.attributes.charisma = 0;
+  
+  if (characterSheet.attributes.strength > 30) characterSheet.attributes.strength = 30;
+  if (characterSheet.attributes.dexterity > 30) characterSheet.attributes.dexterity = 30;
+  if (characterSheet.attributes.constitution > 30) characterSheet.attributes.constitution = 30;
+  if (characterSheet.attributes.intelligence > 30) characterSheet.attributes.intelligence = 30;
+  if (characterSheet.attributes.wisdom > 30) characterSheet.attributes.wisdom = 30;
+  if (characterSheet.attributes.charisma > 30) characterSheet.attributes.charisma = 30;
+  
+  // Ensure other values are valid
+  if (characterSheet.status.max_hp !== null && characterSheet.status.max_hp < 1) {
+    characterSheet.status.max_hp = 1;
+  }
+  if (characterSheet.status.current_hp !== null && characterSheet.status.current_hp < 0) {
+    characterSheet.status.current_hp = 0;
+  }
+}
+
+// Helper function to check for level up
+async function checkForLevelUp(character: CharacterSchema): Promise<{
+  leveledUp: boolean;
+  newSheet: CharacterSchema;
+}> {
+  // Copy the character to avoid mutations
+  const newSheet = JSON.parse(JSON.stringify(character)) as CharacterSchema;
+  const currentLevel = newSheet.character.level;
+  const currentXP = newSheet.character.experience;
+  
+  // D&D 5e XP thresholds for leveling
+  const xpThresholds = [
+    0, 300, 900, 2700, 6500,    // Levels 1-5
+    14000, 23000, 34000, 48000, 64000,  // Levels 6-10
+    85000, 100000, 120000, 140000, 165000,  // Levels 11-15
+    195000, 225000, 265000, 305000, 355000  // Levels 16-20
+  ];
+  
+  // Check if character has enough XP to level up
+  if (currentLevel < 20 && currentXP >= xpThresholds[currentLevel]) {
+    // Character levels up!
+    newSheet.character.level += 1;
+    
+    // Update proficiency bonus
+    newSheet.character.proficiencyBonus = Math.floor((newSheet.character.level - 1) / 4) + 2;
+    
+    // Increase HP based on class and constitution modifier
+    const conModifier = Math.floor((newSheet.attributes.constitution - 10) / 2);
+    const hitDiceValue = getHitDiceValueForClass(newSheet.character.class);
+    
+    // For level up, take average of hit dice + CON modifier
+    const hpIncrease = Math.floor(hitDiceValue / 2) + 1 + conModifier;
+    
+    // Update max_hp if it's not null
+    if (newSheet.status.max_hp !== null) {
+      newSheet.status.max_hp += hpIncrease;
+      // Heal to full HP on level up (optional, based on your game rules)
+      newSheet.status.current_hp = newSheet.status.max_hp;
+    }
+    
+    return { leveledUp: true, newSheet };
+  }
+  
+  return { leveledUp: false, newSheet };
+}
+
+function getHitDiceValueForClass(className: string): number {
+  const lowerClass = className.toLowerCase();
+  if (lowerClass.includes('barbarian')) return 12;
+  if (lowerClass.includes('fighter') || lowerClass.includes('paladin') || lowerClass.includes('ranger')) return 10;
+  if (lowerClass.includes('bard') || lowerClass.includes('cleric') || lowerClass.includes('druid') || 
+      lowerClass.includes('monk') || lowerClass.includes('rogue') || lowerClass.includes('warlock')) return 8;
+  if (lowerClass.includes('sorcerer') || lowerClass.includes('wizard')) return 6;
+  return 8; // Default fallback
 }

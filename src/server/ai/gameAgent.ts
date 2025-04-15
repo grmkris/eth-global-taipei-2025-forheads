@@ -29,26 +29,99 @@ const systemPrompt = async (props: { db: DbType; userId: UserId }) => {
 
   const latestLevel = levelProgression[levelProgression.length - 1];
 
+  // Generate appropriate prompt based on level
+  let basePrompt;
   switch (latestLevel.data.level) {
     case "pic": {
       return sheetMakerPromptGenerator();
     }
     case "sheet": {
-      return level1PromptGenerator({
+      basePrompt = level1PromptGenerator({
         characterSheet: latestLevel.data.characterSheet,
       });
+      break;
     }
     case "level": {
       if (latestLevel.data.levelIndex === 0) {
-        return level2PromptGenerator({
+        basePrompt = level2PromptGenerator({
+          characterSheet: latestLevel.data.characterSheet,
+        });
+      } else {
+        basePrompt = level2PromptGenerator({
           characterSheet: latestLevel.data.characterSheet,
         });
       }
-      return level2PromptGenerator({
-        characterSheet: latestLevel.data.characterSheet,
-      });
+      break;
     }
   }
+
+  // Add character sheet guidance to the prompt
+  if (latestLevel.data.level === "sheet" || latestLevel.data.level === "level") {
+    const characterSheet = latestLevel.data.characterSheet;
+    
+    // Calculate key values for the DM
+    const abilityModifiers = {
+      str: Math.floor((characterSheet.attributes.strength - 10) / 2),
+      dex: Math.floor((characterSheet.attributes.dexterity - 10) / 2),
+      con: Math.floor((characterSheet.attributes.constitution - 10) / 2),
+      int: Math.floor((characterSheet.attributes.intelligence - 10) / 2),
+      wis: Math.floor((characterSheet.attributes.wisdom - 10) / 2),
+      cha: Math.floor((characterSheet.attributes.charisma - 10) / 2),
+    };
+    
+    const profBonus = characterSheet.character.proficiencyBonus || 
+                     Math.floor((characterSheet.character.level - 1) / 4) + 2;
+    
+    // Add DM guidance to the base prompt
+    const dmGuidance = `
+# CHARACTER SHEET REFERENCE
+You are the DM for a player with the following character:
+
+## ${characterSheet.character.name}
+Level ${characterSheet.character.level} ${characterSheet.character.race} ${characterSheet.character.class}
+AC: ${characterSheet.status.armor_class || 10} | HP: ${characterSheet.status.current_hp || 0}/${characterSheet.status.max_hp || 0}
+STR: ${characterSheet.attributes.strength} (${abilityModifiers.str >= 0 ? '+' : ''}${abilityModifiers.str})
+DEX: ${characterSheet.attributes.dexterity} (${abilityModifiers.dex >= 0 ? '+' : ''}${abilityModifiers.dex})
+CON: ${characterSheet.attributes.constitution} (${abilityModifiers.con >= 0 ? '+' : ''}${abilityModifiers.con})
+INT: ${characterSheet.attributes.intelligence} (${abilityModifiers.int >= 0 ? '+' : ''}${abilityModifiers.int})
+WIS: ${characterSheet.attributes.wisdom} (${abilityModifiers.wis >= 0 ? '+' : ''}${abilityModifiers.wis})
+CHA: ${characterSheet.attributes.charisma} (${abilityModifiers.cha >= 0 ? '+' : ''}${abilityModifiers.cha})
+
+Proficiency Bonus: +${profBonus}
+Skill Proficiencies: ${characterSheet.proficiencies.skills.join(", ")}
+Weapon Proficiencies: ${characterSheet.proficiencies.weapons.join(", ")}
+Languages: ${characterSheet.proficiencies.languages.join(", ")}
+
+# DM GUIDANCE
+When the player attempts an action:
+
+1. For SKILL CHECKS:
+   - If using a skill they're proficient in, roll d20 + ability modifier + proficiency bonus (+${profBonus})
+   - If using a skill they're not proficient in, roll d20 + ability modifier only
+   - Compare against appropriate DC (10: easy, 15: moderate, 20: hard)
+
+2. For ATTACK ROLLS:
+   - If using a weapon they're proficient with, roll d20 + ability modifier + proficiency bonus (+${profBonus})
+   - If using a weapon they're not proficient with, roll d20 + ability modifier only
+   - Compare against target's AC
+
+3. For SAVING THROWS:
+   - If it's a saving throw they're proficient in, roll d20 + ability modifier + proficiency bonus (+${profBonus})
+   - If it's a saving throw they're not proficient in, roll d20 + ability modifier only
+   - Compare against appropriate DC
+
+4. For SPELLCASTING (if applicable):
+   - Spell save DC = 8 + proficiency bonus (+${profBonus}) + spellcasting ability modifier
+   - Spell attack bonus = proficiency bonus (+${profBonus}) + spellcasting ability modifier
+
+Remember to narrate the results of rolls and checks in an engaging way.
+Track HP changes when the character takes damage or heals.
+`;
+
+    return `${basePrompt}\n\n${dmGuidance}`;
+  }
+
+  return basePrompt;
 };
 
 export const createGameAgent = (props: {

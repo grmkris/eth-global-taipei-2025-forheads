@@ -452,137 +452,25 @@ export const app = new Hono()
 
       // Populate details from the character sheet if found
       if (latestCharacterSheet) {
-        const char = latestCharacterSheet.character;
-        const attrs = latestCharacterSheet.attributes;
-        const status = latestCharacterSheet.status;
-        const profs = latestCharacterSheet.proficiencies;
-
-        nftMetadata.name = char.name || nftMetadata.name; // Use character name if available
-        nftMetadata.description = char.background || nftMetadata.description; // Use background if available
+        // Update name and basic description before enhancing
+        nftMetadata.name = latestCharacterSheet.character.name || nftMetadata.name;
+        
+        // Add latest summary if available
         if (latestSummary) {
-          // Append summary, use Markdown newline
           nftMetadata.description += `\n\nLatest Progress: ${latestSummary}`;
         }
-
-        // --- Add Attributes ---
-
-        // Basic Info
-        if (char.race)
-          nftMetadata.attributes.push({ trait_type: "Race", value: char.race });
-        if (char.class)
-          nftMetadata.attributes.push({
-            trait_type: "Class",
-            value: char.class,
-          });
-        if (char.level !== undefined)
-          nftMetadata.attributes.push({
-            trait_type: "Level",
-            value: char.level,
-            display_type: "number",
-          });
-        if (char.alignment)
-          nftMetadata.attributes.push({
-            trait_type: "Alignment",
-            value: char.alignment,
-          });
-
-        // Core Attributes
-        if (attrs.strength !== undefined)
-          nftMetadata.attributes.push({
-            trait_type: "Strength",
-            value: attrs.strength,
-            display_type: "number",
-          });
-        if (attrs.dexterity !== undefined)
-          nftMetadata.attributes.push({
-            trait_type: "Dexterity",
-            value: attrs.dexterity,
-            display_type: "number",
-          });
-        if (attrs.constitution !== undefined)
-          nftMetadata.attributes.push({
-            trait_type: "Constitution",
-            value: attrs.constitution,
-            display_type: "number",
-          });
-        if (attrs.intelligence !== undefined)
-          nftMetadata.attributes.push({
-            trait_type: "Intelligence",
-            value: attrs.intelligence,
-            display_type: "number",
-          });
-        if (attrs.wisdom !== undefined)
-          nftMetadata.attributes.push({
-            trait_type: "Wisdom",
-            value: attrs.wisdom,
-            display_type: "number",
-          });
-        if (attrs.charisma !== undefined)
-          nftMetadata.attributes.push({
-            trait_type: "Charisma",
-            value: attrs.charisma,
-            display_type: "number",
-          });
-
-        // Status (only include if not null/undefined)
-        if (status.max_hp !== null && status.max_hp !== undefined)
-          nftMetadata.attributes.push({
-            trait_type: "Max HP",
-            value: status.max_hp,
-            display_type: "number",
-          });
-        if (status.armor_class !== null && status.armor_class !== undefined)
-          nftMetadata.attributes.push({
-            trait_type: "Armor Class",
-            value: status.armor_class,
-            display_type: "number",
-          });
-        if (status.speed !== null && status.speed !== undefined)
-          nftMetadata.attributes.push({
-            trait_type: "Speed",
-            value: status.speed,
-            display_type: "number",
-          });
-
-        // Proficiencies (combine into strings for simplicity or list individually)
-        if (profs.skills && profs.skills.length > 0) {
-          nftMetadata.attributes.push({
-            trait_type: "Skills",
-            value: profs.skills.join(", "),
-          });
-        }
-        if (profs.languages && profs.languages.length > 0) {
-          nftMetadata.attributes.push({
-            trait_type: "Languages",
-            value: profs.languages.join(", "),
-          });
-        }
-        // Consider adding weapons, armor, tools similarly if desired
+        
+        // Use the character enhancer function to add all character attributes
+        const { enhanceNftMetadataWithCharacter } = await import('./ai/enhanceNftMetadata');
+        const enhancedMetadata = enhanceNftMetadataWithCharacter(
+          nftMetadata,
+          latestCharacterSheet
+        );
+        
+        return c.json(enhancedMetadata);
       }
 
-      // Add highest completed level/stage as a trait
-      if (highestLevelType) {
-        // Map internal level name to a more user-friendly name
-        const levelNameMap: Partial<Record<schema.Level, string>> = {
-          pic: "Stage 1: Character Picture",
-          sheet: "Stage 2: Character Sheet",
-        };
-
-        // For "level" type, use the levelIndex
-        let levelDisplayName =
-          levelNameMap[highestLevelType] || highestLevelType;
-        if (highestLevelType === "level" && highestLevelIndex >= 0) {
-          levelDisplayName = `Stage ${highestLevelIndex + 3}: Adventure ${
-            highestLevelIndex + 1
-          }`;
-        }
-
-        nftMetadata.attributes.push({
-          trait_type: "Highest Stage Reached",
-          value: levelDisplayName,
-        });
-      }
-
+      // If no character sheet found, return the basic metadata
       return c.json(nftMetadata);
     },
   )

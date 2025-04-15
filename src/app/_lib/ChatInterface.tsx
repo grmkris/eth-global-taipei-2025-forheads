@@ -13,6 +13,7 @@ import { typeIdGenerator } from "@/server/db/typeid";
 import { useAccount } from "wagmi";
 import { useConversation } from "@/lib/chatHooks";
 import ConnectButton from "@/components/web3/connect-button";
+import { CharacterSheetButton } from "@/components/character/CharacterSheetButton";
 import { Button } from "@/components/ui/button";
 import { RefreshCwIcon } from "lucide-react";
 
@@ -89,7 +90,16 @@ export function ChatInterface() {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-background">
+      {/* Add this header with the button */}
+      <div className="border-b p-2 flex items-center justify-between">
+        <h1 className="text-lg font-bold">Foreheads</h1>
+        <div className="flex gap-2">
+          <CharacterSheetButton />
+          <ConnectButton />
+        </div>
+      </div>
+      
       {/* Chat container */}
       <ChatContainer className="flex-1 overflow-y-auto">
         {chat.messages.length === 0 ? (
@@ -165,6 +175,7 @@ export function ChatInterface() {
           </div>
         )}
       </ChatContainer>
+      
       {/* Use your ChatInputBar component with loading state */}
       <ChatInputBar
         onSendMessage={handleSendMessage}
@@ -212,8 +223,6 @@ export function ChatInterface() {
             : "No messages"}
         </span>
       </div>
-
-      <ConnectButton />
     </div>
   );
 }
